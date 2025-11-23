@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
-export type Region = 'BR' | 'US' | 'EU';
+export type Region = 'BR' | 'US' | 'DE' | 'FR' | 'ES' | 'IT';
 
 export type RegionConfig = {
   code: Region;
@@ -28,10 +28,34 @@ export const REGIONS: Record<Region, RegionConfig> = {
     priceMultiplier: 9.99,
     currencySymbol: '$',
   },
-  EU: {
-    code: 'EU',
-    name: 'Europe',
-    language: 'en',
+  DE: {
+    code: 'DE',
+    name: 'Deutschland',
+    language: 'de',
+    currency: 'EUR',
+    priceMultiplier: 9.99,
+    currencySymbol: '€',
+  },
+  FR: {
+    code: 'FR',
+    name: 'France',
+    language: 'fr',
+    currency: 'EUR',
+    priceMultiplier: 9.99,
+    currencySymbol: '€',
+  },
+  ES: {
+    code: 'ES',
+    name: 'España',
+    language: 'es',
+    currency: 'EUR',
+    priceMultiplier: 9.99,
+    currencySymbol: '€',
+  },
+  IT: {
+    code: 'IT',
+    name: 'Italia',
+    language: 'it',
     currency: 'EUR',
     priceMultiplier: 9.99,
     currencySymbol: '€',

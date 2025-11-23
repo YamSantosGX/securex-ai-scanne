@@ -38,7 +38,7 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
           </Link>
 
           {/* Navigation Links */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-6 ml-auto mr-6">
             {isAuthenticated && (
               <Link
                 to="/dashboard"
@@ -53,14 +53,6 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
             >
               {t('nav.pricing')}
             </Link>
-            <a
-              href="https://discord.gg/X36RjdnReJ"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-foreground/80 hover:text-primary transition-colors"
-            >
-              {t('nav.discord')}
-            </a>
           </div>
 
           {/* Actions */}

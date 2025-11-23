@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Upload, Link as LinkIcon, Shield, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Upload, Link as LinkIcon, Shield, Clock, CheckCircle, AlertTriangle, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
 
 // URL validation schema
@@ -38,13 +40,37 @@ export default function Dashboard() {
   const [url, setUrl] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [history, setHistory] = useState<ScanHistory[]>(mockHistory);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const isAuth = localStorage.getItem('isAuthenticated');
-    if (!isAuth) {
-      navigate('/auth');
-    }
+    checkAuthAndSubscription();
   }, [navigate]);
+
+  const checkAuthAndSubscription = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate('/auth');
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_status')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile?.subscription_status === 'active') {
+        setIsSubscribed(true);
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleScan = async () => {
     if (!url && !file) {
@@ -111,6 +137,14 @@ export default function Dashboard() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <Navbar isAuthenticated />
@@ -122,9 +156,17 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Central de <span className="glow-text">Análise de Segurança</span>
-          </h1>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold">
+              Central de <span className="glow-text">Análise de Segurança</span>
+            </h1>
+            {isSubscribed && (
+              <Badge className="bg-primary text-primary-foreground gap-1">
+                <Crown className="w-4 h-4" />
+                PRO
+              </Badge>
+            )}
+          </div>
           <p className="text-muted-foreground text-lg">
             Escaneie seus arquivos e sites com IA avançada
           </p>
