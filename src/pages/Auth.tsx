@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Shield, Mail, Lock, User } from 'lucide-react';
@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
+import PoweredByFooter from '@/components/PoweredByFooter';
 
 // Validation schemas
 const loginSchema = z.object({
@@ -47,25 +49,53 @@ export default function Auth() {
     setPasswordStrength(calculatePasswordStrength(pwd));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        navigate('/dashboard');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
       // Validate inputs based on mode
       if (isLogin) {
         loginSchema.parse({ email, password });
+        
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+        toast.success('Login realizado com sucesso!');
       } else {
         signupSchema.parse({ name, email, password });
-      }
+        
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              name,
+            }
+          }
+        });
 
-      // Simulate authentication
-      localStorage.setItem('isAuthenticated', 'true');
-      toast.success(isLogin ? 'Login realizado com sucesso!' : 'Conta criada com sucesso!');
-      navigate('/dashboard');
+        if (error) throw error;
+        toast.success('Conta criada com sucesso!');
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
-        // Show first validation error
         toast.error(error.errors[0].message);
+      } else if (error instanceof Error) {
+        toast.error(error.message);
       } else {
         toast.error('Erro ao processar formulário');
       }
@@ -188,6 +218,8 @@ export default function Auth() {
             </button>
           </div>
         </div>
+
+        <PoweredByFooter />
       </motion.div>
     </div>
   );
