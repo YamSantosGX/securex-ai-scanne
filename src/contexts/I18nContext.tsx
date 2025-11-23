@@ -20,6 +20,12 @@ const translations = {
     'home.cta.start': 'Começar Agora',
     'home.cta.plans': 'Ver Planos',
     'home.cta.discord': 'Junte-se ao Discord',
+    'home.feature1.title': 'Scan Inteligente com IA',
+    'home.feature1.desc': 'Scanner avançado com inteligência artificial que detecta vulnerabilidades conhecidas e desconhecidas',
+    'home.feature2.title': 'Análise em Tempo Real',
+    'home.feature2.desc': 'Monitore suas aplicações 24/7 com relatórios detalhados e alertas instantâneos de segurança',
+    'home.feature3.title': 'Correções Automáticas',
+    'home.feature3.desc': 'Receba recomendações precisas e código pronto para corrigir vulnerabilidades identificadas',
     
     // Pricing
     'pricing.title': 'Escolha seu',
@@ -101,6 +107,12 @@ const translations = {
     'home.cta.start': 'Get Started',
     'home.cta.plans': 'View Plans',
     'home.cta.discord': 'Join Discord',
+    'home.feature1.title': 'AI Smart Scan',
+    'home.feature1.desc': 'Advanced scanner with artificial intelligence that detects known and unknown vulnerabilities',
+    'home.feature2.title': 'Real-Time Analysis',
+    'home.feature2.desc': 'Monitor your applications 24/7 with detailed reports and instant security alerts',
+    'home.feature3.title': 'Automatic Fixes',
+    'home.feature3.desc': 'Receive precise recommendations and ready-to-use code to fix identified vulnerabilities',
     
     // Pricing
     'pricing.title': 'Choose your',
@@ -182,6 +194,12 @@ const translations = {
     'home.cta.start': 'Jetzt starten',
     'home.cta.plans': 'Pläne ansehen',
     'home.cta.discord': 'Discord beitreten',
+    'home.feature1.title': 'Intelligenter KI-Scan',
+    'home.feature1.desc': 'Fortgeschrittener Scanner mit künstlicher Intelligenz, der bekannte und unbekannte Schwachstellen erkennt',
+    'home.feature2.title': 'Echtzeitanalyse',
+    'home.feature2.desc': 'Überwachen Sie Ihre Anwendungen 24/7 mit detaillierten Berichten und sofortigen Sicherheitswarnungen',
+    'home.feature3.title': 'Automatische Korrekturen',
+    'home.feature3.desc': 'Erhalten Sie präzise Empfehlungen und gebrauchsfertigen Code zur Behebung identifizierter Schwachstellen',
     
     // Pricing
     'pricing.title': 'Wählen Sie Ihren',
@@ -263,6 +281,12 @@ const translations = {
     'home.cta.start': 'Commencer maintenant',
     'home.cta.plans': 'Voir les plans',
     'home.cta.discord': 'Rejoindre Discord',
+    'home.feature1.title': 'Scan intelligent avec IA',
+    'home.feature1.desc': 'Scanner avancé avec intelligence artificielle qui détecte les vulnérabilités connues et inconnues',
+    'home.feature2.title': 'Analyse en temps réel',
+    'home.feature2.desc': 'Surveillez vos applications 24/7 avec des rapports détaillés et des alertes de sécurité instantanées',
+    'home.feature3.title': 'Corrections automatiques',
+    'home.feature3.desc': 'Recevez des recommandations précises et du code prêt à l\'emploi pour corriger les vulnérabilités identifiées',
     
     // Pricing
     'pricing.title': 'Choisissez votre',
@@ -327,6 +351,180 @@ const translations = {
     'common.success': 'Succès',
     'common.cancel': 'Annuler',
     'common.confirm': 'Confirmer',
+  },
+  es: {
+    // Navbar
+    'nav.dashboard': 'Panel',
+    'nav.pricing': 'Precios',
+    'nav.discord': 'Nuestro servidor',
+    'nav.login': 'Iniciar sesión',
+    'nav.logout': 'Cerrar sesión',
+    'nav.start_free': 'Comenzar gratis',
+    
+    // Home
+    'home.hero.title': 'Protección de',
+    'home.hero.title_highlight': 'clase mundial',
+    'home.hero.subtitle': 'Escanea y protege tus aplicaciones con inteligencia artificial avanzada',
+    'home.cta.start': 'Comenzar ahora',
+    'home.cta.plans': 'Ver planes',
+    'home.cta.discord': 'Únete a Discord',
+    'home.feature1.title': 'Escaneo inteligente con IA',
+    'home.feature1.desc': 'Escáner avanzado con inteligencia artificial que detecta vulnerabilidades conocidas y desconocidas',
+    'home.feature2.title': 'Análisis en tiempo real',
+    'home.feature2.desc': 'Monitorea tus aplicaciones 24/7 con informes detallados y alertas de seguridad instantáneas',
+    'home.feature3.title': 'Correcciones automáticas',
+    'home.feature3.desc': 'Recibe recomendaciones precisas y código listo para usar para corregir vulnerabilidades identificadas',
+    
+    // Pricing
+    'pricing.title': 'Elige tu',
+    'pricing.title_highlight': 'Plan',
+    'pricing.subtitle': 'Protección profesional para aplicaciones de todos los tamaños',
+    'pricing.monthly': 'Mensual',
+    'pricing.annual': 'Anual',
+    'pricing.discount': '-10%',
+    'pricing.per_month': '/mes',
+    'pricing.per_year': '/año',
+    'pricing.payment_info': 'Pagos procesados de forma segura vía',
+    'pricing.faq_title': 'Preguntas',
+    'pricing.faq_title_highlight': 'frecuentes',
+    
+    // Plans
+    'plan.free.name': 'Gratis',
+    'plan.free.description': 'Para empezar',
+    'plan.free.feature1': '3 escaneos por mes',
+    'plan.free.feature2': 'Informes básicos',
+    'plan.free.feature3': 'Soporte por email',
+    'plan.free.feature4': 'Historial de 30 días',
+    'plan.free.cta': 'Comenzar gratis',
+    
+    'plan.pro.name': 'Pro',
+    'plan.pro.description': 'Protección IA completa',
+    'plan.pro.feature1': 'Escaneos ilimitados',
+    'plan.pro.feature2': 'Informes IA avanzados',
+    'plan.pro.feature3': 'Soporte prioritario 24/7',
+    'plan.pro.feature4': 'Historial ilimitado',
+    'plan.pro.feature5': 'API de integración',
+    'plan.pro.feature6': 'Alertas en tiempo real',
+    'plan.pro.feature7': 'Análisis de código fuente',
+    'plan.pro.feature8': 'Protección zero-day',
+    'plan.pro.cta': 'Suscribirse ahora',
+    'plan.pro.badge': 'Miembro PRO',
+    
+    // FAQ
+    'faq.q1': '¿Cómo funciona el escaneo?',
+    'faq.a1': 'Nuestro sistema utiliza inteligencia artificial avanzada para analizar tu código e infraestructura, identificando vulnerabilidades conocidas y posibles brechas de seguridad.',
+    'faq.q2': '¿Puedo cancelar en cualquier momento?',
+    'faq.a2': '¡Sí! Puedes cancelar tu suscripción en cualquier momento sin cargos adicionales. Mantendrás el acceso hasta el final del período pagado.',
+    'faq.q3': '¿El escaneo afecta el rendimiento de mi sitio?',
+    'faq.a3': 'No. Nuestros escaneos son no invasivos y se ejecutan de manera que no impacten el rendimiento o disponibilidad de tu aplicación.',
+    'faq.q4': '¿Qué lenguajes y frameworks son compatibles?',
+    'faq.a4': 'Soportamos los principales lenguajes (JavaScript, Python, PHP, Java, etc.) y frameworks (React, Vue, Laravel, Spring, etc.).',
+    
+    // Auth
+    'auth.login': 'Iniciar sesión',
+    'auth.signup': 'Registrarse',
+    'auth.email': 'Email',
+    'auth.password': 'Contraseña',
+    'auth.name': 'Nombre',
+    
+    // Dashboard
+    'dashboard.welcome': 'Bienvenido',
+    'dashboard.scan': 'Escanear',
+    'dashboard.history': 'Historial',
+    
+    // Common
+    'common.loading': 'Cargando...',
+    'common.error': 'Error',
+    'common.success': 'Éxito',
+    'common.cancel': 'Cancelar',
+    'common.confirm': 'Confirmar',
+  },
+  it: {
+    // Navbar
+    'nav.dashboard': 'Dashboard',
+    'nav.pricing': 'Prezzi',
+    'nav.discord': 'Il nostro server',
+    'nav.login': 'Accedi',
+    'nav.logout': 'Esci',
+    'nav.start_free': 'Inizia gratis',
+    
+    // Home
+    'home.hero.title': 'Protezione di',
+    'home.hero.title_highlight': 'classe mondiale',
+    'home.hero.subtitle': 'Scansiona e proteggi le tue applicazioni con intelligenza artificiale avanzata',
+    'home.cta.start': 'Inizia ora',
+    'home.cta.plans': 'Vedi piani',
+    'home.cta.discord': 'Unisciti a Discord',
+    'home.feature1.title': 'Scansione intelligente con IA',
+    'home.feature1.desc': 'Scanner avanzato con intelligenza artificiale che rileva vulnerabilità note e sconosciute',
+    'home.feature2.title': 'Analisi in tempo reale',
+    'home.feature2.desc': 'Monitora le tue applicazioni 24/7 con report dettagliati e avvisi di sicurezza istantanei',
+    'home.feature3.title': 'Correzioni automatiche',
+    'home.feature3.desc': 'Ricevi raccomandazioni precise e codice pronto all\'uso per correggere le vulnerabilità identificate',
+    
+    // Pricing
+    'pricing.title': 'Scegli il tuo',
+    'pricing.title_highlight': 'Piano',
+    'pricing.subtitle': 'Protezione professionale per applicazioni di tutte le dimensioni',
+    'pricing.monthly': 'Mensile',
+    'pricing.annual': 'Annuale',
+    'pricing.discount': '-10%',
+    'pricing.per_month': '/mese',
+    'pricing.per_year': '/anno',
+    'pricing.payment_info': 'Pagamenti elaborati in sicurezza tramite',
+    'pricing.faq_title': 'Domande',
+    'pricing.faq_title_highlight': 'frequenti',
+    
+    // Plans
+    'plan.free.name': 'Gratuito',
+    'plan.free.description': 'Per iniziare',
+    'plan.free.feature1': '3 scansioni al mese',
+    'plan.free.feature2': 'Report di base',
+    'plan.free.feature3': 'Supporto via email',
+    'plan.free.feature4': 'Storico di 30 giorni',
+    'plan.free.cta': 'Inizia gratis',
+    
+    'plan.pro.name': 'Pro',
+    'plan.pro.description': 'Protezione IA completa',
+    'plan.pro.feature1': 'Scansioni illimitate',
+    'plan.pro.feature2': 'Report IA avanzati',
+    'plan.pro.feature3': 'Supporto prioritario 24/7',
+    'plan.pro.feature4': 'Storico illimitato',
+    'plan.pro.feature5': 'API di integrazione',
+    'plan.pro.feature6': 'Avvisi in tempo reale',
+    'plan.pro.feature7': 'Analisi del codice sorgente',
+    'plan.pro.feature8': 'Protezione zero-day',
+    'plan.pro.cta': 'Iscriviti ora',
+    'plan.pro.badge': 'Membro PRO',
+    
+    // FAQ
+    'faq.q1': 'Come funziona la scansione?',
+    'faq.a1': 'Il nostro sistema utilizza intelligenza artificiale avanzata per analizzare il tuo codice e l\'infrastruttura, identificando vulnerabilità note e potenziali brecce di sicurezza.',
+    'faq.q2': 'Posso cancellare in qualsiasi momento?',
+    'faq.a2': 'Sì! Puoi cancellare il tuo abbonamento in qualsiasi momento senza costi aggiuntivi. Manterrai l\'accesso fino alla fine del periodo pagato.',
+    'faq.q3': 'La scansione influisce sulle prestazioni del mio sito?',
+    'faq.a3': 'No. Le nostre scansioni sono non invasive ed eseguite in modo da non impattare le prestazioni o la disponibilità della tua applicazione.',
+    'faq.q4': 'Quali linguaggi e framework sono supportati?',
+    'faq.a4': 'Supportiamo i principali linguaggi (JavaScript, Python, PHP, Java, ecc.) e framework (React, Vue, Laravel, Spring, ecc.).',
+    
+    // Auth
+    'auth.login': 'Accedi',
+    'auth.signup': 'Registrati',
+    'auth.email': 'Email',
+    'auth.password': 'Password',
+    'auth.name': 'Nome',
+    
+    // Dashboard
+    'dashboard.welcome': 'Benvenuto',
+    'dashboard.scan': 'Scansiona',
+    'dashboard.history': 'Storico',
+    
+    // Common
+    'common.loading': 'Caricamento...',
+    'common.error': 'Errore',
+    'common.success': 'Successo',
+    'common.cancel': 'Annulla',
+    'common.confirm': 'Conferma',
   },
 };
 
