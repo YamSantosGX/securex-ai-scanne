@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 260 50% 8%;
+    --foreground: 280 20% 95%;
+
+    --card: 260 45% 11%;
+    --card-foreground: 280 20% 95%;
+
+    --popover: 260 50% 9%;
+    --popover-foreground: 280 20% 95%;
+
+    --primary: 280 90% 65%;
+    --primary-foreground: 260 50% 8%;
+
+    --secondary: 260 45% 15%;
+    --secondary-foreground: 280 20% 95%;
+
+    --muted: 260 40% 18%;
+    --muted-foreground: 280 10% 70%;
+
+    --accent: 290 95% 70%;
+    --accent-foreground: 260 50% 8%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 260 40% 22%;
+    --input: 260 40% 18%;
+    --ring: 280 90% 65%;
+
+    --radius: 0.75rem;
+
+    --glow-primary: 280 90% 65%;
+    --glow-secondary: 290 95% 70%;
+    --glass-bg: 260 45% 12%;
+    --glass-border: 280 90% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-card/50 backdrop-blur-xl border border-border/50;
+  }
+  
+  .glass-hover {
+    @apply glass transition-all duration-300 hover:border-primary/50 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)];
+  }
+  
+  .glow-text {
+    @apply text-primary;
+    text-shadow: 0 0 20px hsl(var(--glow-primary) / 0.5);
+  }
+  
+  .glow-border {
+    box-shadow: 0 0 20px hsl(var(--glow-primary) / 0.3);
+  }
+  
+  .btn-glow {
+    @apply transition-all duration-300;
+    box-shadow: 0 0 20px hsl(var(--glow-primary) / 0.4);
+  }
+  
+  .btn-glow:hover {
+    box-shadow: 0 0 30px hsl(var(--glow-primary) / 0.6);
+  }
+}
