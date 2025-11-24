@@ -69,7 +69,7 @@ export default function Home() {
             >
               {t('home.hero.title')} <span className="glow-text whitespace-nowrap">{t('home.hero.title_highlight')}</span>
               <br />
-              para suas Aplicações
+              {t('home.hero.subtitle_line2')} <span className="glow-text">{t('home.hero.applications')}</span>
             </motion.h1>
 
             {/* Subtitle */}
