@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          last_scan_reset: string | null
+          scans_this_month: number | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
@@ -27,6 +29,8 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          last_scan_reset?: string | null
+          scans_this_month?: number | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
@@ -36,11 +40,52 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          last_scan_reset?: string | null
+          scans_this_month?: number | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      scans: {
+        Row: {
+          created_at: string | null
+          id: string
+          result: Json | null
+          scan_type: string
+          severity: string | null
+          status: string
+          target: string
+          updated_at: string | null
+          user_id: string
+          vulnerabilities_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          result?: Json | null
+          scan_type: string
+          severity?: string | null
+          status?: string
+          target: string
+          updated_at?: string | null
+          user_id: string
+          vulnerabilities_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          result?: Json | null
+          scan_type?: string
+          severity?: string | null
+          status?: string
+          target?: string
+          updated_at?: string | null
+          user_id?: string
+          vulnerabilities_count?: number | null
         }
         Relationships: []
       }

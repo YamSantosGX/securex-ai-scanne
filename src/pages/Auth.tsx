@@ -107,13 +107,20 @@ export default function Auth() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
         className="w-full max-w-md"
       >
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <div className="p-4 rounded-2xl glass-hover animate-float">
+          <motion.div 
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 1, delay: 0.2 }}
+            className="p-4 rounded-2xl glass-hover"
+            style={{ animation: 'float 6s ease-in-out infinite' }}
+          >
             <Shield className="w-12 h-12 text-primary" />
-          </div>
+          </motion.div>
         </div>
 
         {/* Form Card */}
@@ -200,7 +207,7 @@ export default function Auth() {
 
             <Button
               type="submit"
-              className="w-full btn-glow bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="w-full btn-glow btn-zoom bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {isLogin ? 'Entrar' : 'Criar Conta'}
             </Button>

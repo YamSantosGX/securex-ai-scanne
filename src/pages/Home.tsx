@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
-import { Shield, ArrowRight, Scan, Bell, CheckCircle2 } from 'lucide-react';
+import { Shield, ArrowRight, Scan, Bell, CheckCircle2, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
+import PoweredByFooter from '@/components/PoweredByFooter';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -63,10 +64,10 @@ export default function Home() {
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
               className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight px-4"
             >
-              Segurança de <span className="glow-text whitespace-nowrap">Classe Mundial</span>
+              {t('home.hero.title')} <span className="glow-text whitespace-nowrap">{t('home.hero.title_highlight')}</span>
               <br />
               para suas Aplicações
             </motion.h1>
@@ -75,24 +76,23 @@ export default function Home() {
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
               className="text-base sm:text-lg md:text-xl text-muted-foreground mb-10 max-w-3xl mx-auto px-4"
             >
-              Plataforma profissional de cybersegurança que analisa, detecta e corrige
-              vulnerabilidades em tempo real usando inteligência artificial avançada.
+              {t('home.hero.subtitle')}
             </motion.p>
 
             {/* CTA Buttons */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.4, duration: 0.8 }}
               className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16 px-4"
             >
               <Button
                 size="lg"
                 onClick={() => navigate('/auth')}
-                className="btn-glow bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-5 text-base w-full sm:w-auto"
+                className="btn-glow btn-zoom bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-5 text-base w-full sm:w-auto"
               >
                 {t('home.cta.start')}
                 <ArrowRight className="ml-2 w-5 h-5" />
@@ -102,9 +102,19 @@ export default function Home() {
                 size="lg"
                 variant="outline"
                 onClick={() => navigate('/pricing')}
-                className="px-8 py-5 text-base glass-hover w-full sm:w-auto"
+                className="px-8 py-5 text-base glass-hover btn-zoom w-full sm:w-auto"
               >
                 {t('home.cta.plans')}
+              </Button>
+
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => window.open('https://discord.gg/discloud', '_blank')}
+                className="px-8 py-5 text-base glass-hover btn-zoom w-full sm:w-auto"
+              >
+                <MessageCircle className="mr-2 w-5 h-5" />
+                {t('home.cta.discord')}
               </Button>
             </motion.div>
 
@@ -112,7 +122,7 @@ export default function Home() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
               className="grid md:grid-cols-3 gap-6 mt-16 px-4"
             >
               {features.map((feature, index) => (
@@ -120,7 +130,7 @@ export default function Home() {
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 + index * 0.1 }}
+                  transition={{ delay: 0.6 + index * 0.1, duration: 0.8 }}
                   className="glass-hover p-6 rounded-2xl text-left"
                 >
                   <div className="p-3 rounded-xl bg-primary/10 w-fit mb-4">
@@ -137,6 +147,7 @@ export default function Home() {
         </section>
       </main>
 
+      <PoweredByFooter />
       <Footer />
     </div>
   );
