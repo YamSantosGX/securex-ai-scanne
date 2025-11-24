@@ -7,6 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
@@ -20,31 +30,33 @@ const urlSchema = z.string()
   .max(2048, 'URL muito longa')
   .regex(/^https?:\/\//, 'Apenas protocolos HTTP e HTTPS são permitidos');
 
-type ScanHistory = {
+type Scan = {
   id: string;
-  date: string;
   target: string;
-  status: 'safe' | 'warning' | 'danger';
-  type: 'file' | 'url';
+  scan_type: 'file' | 'url';
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  severity: 'safe' | 'warning' | 'danger' | null;
+  vulnerabilities_count: number;
+  created_at: string;
 };
-
-const mockHistory: ScanHistory[] = [
-  { id: '1', date: '2025-01-15', target: 'app.js', status: 'safe', type: 'file' },
-  { id: '2', date: '2025-01-14', target: 'https://exemplo.com', status: 'warning', type: 'url' },
-  { id: '3', date: '2025-01-13', target: 'index.html', status: 'safe', type: 'file' },
-];
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [isScanning, setIsScanning] = useState(false);
   const [url, setUrl] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [history, setHistory] = useState<ScanHistory[]>(mockHistory);
+  const [scans, setScans] = useState<Scan[]>([]);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [scansThisMonth, setScansThisMonth] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingScanData, setPendingScanData] = useState<{ url?: string; file?: File } | null>(null);
+
+  const MAX_FREE_SCANS = 5;
 
   useEffect(() => {
     checkAuthAndSubscription();
+    loadScans();
   }, [navigate]);
 
   const checkAuthAndSubscription = async () => {
@@ -58,13 +70,15 @@ export default function Dashboard() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('subscription_status')
+        .select('subscription_status, scans_this_month')
         .eq('user_id', user.id)
         .single();
 
       if (profile?.subscription_status === 'active') {
         setIsSubscribed(true);
       }
+      
+      setScansThisMonth(profile?.scans_this_month || 0);
     } catch (error) {
       console.error('Error checking subscription:', error);
     } finally {
@@ -72,7 +86,25 @@ export default function Dashboard() {
     }
   };
 
-  const handleScan = async () => {
+  const loadScans = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('scans')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setScans((data as unknown as Scan[]) || []);
+    } catch (error) {
+      console.error('Error loading scans:', error);
+    }
+  };
+
+  const handleScanRequest = () => {
     if (!url && !file) {
       toast.error('Por favor, forneça uma URL ou arquivo para escanear');
       return;
@@ -90,29 +122,78 @@ export default function Dashboard() {
       }
     }
 
+    // Check scan limits for free users
+    if (!isSubscribed && scansThisMonth >= MAX_FREE_SCANS) {
+      toast.error(`Limite de ${MAX_FREE_SCANS} scans gratuitos por mês atingido. Faça upgrade para continuar.`);
+      navigate('/pricing');
+      return;
+    }
+
+    setPendingScanData({ url: url || undefined, file: file || undefined });
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmScan = async () => {
+    if (!pendingScanData) return;
+
+    setShowConfirmDialog(false);
     setIsScanning(true);
     toast.info('Analisando vulnerabilidades...');
 
-    // Simulate scan
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
 
-    const newScan: ScanHistory = {
-      id: Date.now().toString(),
-      date: new Date().toISOString().split('T')[0],
-      target: file ? file.name : url,
-      status: 'safe',
-      type: file ? 'file' : 'url',
-    };
+      const target = pendingScanData.file ? pendingScanData.file.name : pendingScanData.url || '';
+      const scanType = pendingScanData.file ? 'file' : 'url';
 
-    setHistory([newScan, ...history]);
-    setIsScanning(false);
-    setUrl('');
-    setFile(null);
-    toast.success('Scan concluído! Nenhuma vulnerabilidade detectada.');
+      // Create scan record
+      const { data: newScan, error } = await supabase
+        .from('scans')
+        .insert({
+          user_id: user.id,
+          target,
+          scan_type: scanType,
+          status: 'processing'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Simulate AI scan (in production, this would call Lovable AI)
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      // Update scan with results
+      const { error: updateError } = await supabase
+        .from('scans')
+        .update({
+          status: 'completed',
+          severity: 'safe',
+          vulnerabilities_count: 0,
+          result: { message: 'Nenhuma vulnerabilidade detectada' }
+        })
+        .eq('id', newScan.id);
+
+      if (updateError) throw updateError;
+
+      await loadScans();
+      await checkAuthAndSubscription();
+      
+      setUrl('');
+      setFile(null);
+      setPendingScanData(null);
+      toast.success('Scan concluído! Nenhuma vulnerabilidade detectada.');
+    } catch (error) {
+      console.error('Error during scan:', error);
+      toast.error('Erro ao realizar scan. Tente novamente.');
+    } finally {
+      setIsScanning(false);
+    }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusIcon = (severity: string | null) => {
+    switch (severity) {
       case 'safe':
         return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'warning':
@@ -120,12 +201,12 @@ export default function Dashboard() {
       case 'danger':
         return <AlertTriangle className="w-5 h-5 text-red-500" />;
       default:
-        return null;
+        return <Clock className="w-5 h-5 text-muted-foreground" />;
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
+  const getStatusText = (severity: string | null) => {
+    switch (severity) {
       case 'safe':
         return 'Seguro';
       case 'warning':
@@ -133,7 +214,7 @@ export default function Dashboard() {
       case 'danger':
         return 'Risco';
       default:
-        return '';
+        return 'Processando';
     }
   };
 
@@ -154,6 +235,7 @@ export default function Dashboard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
           className="text-center mb-12"
         >
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -170,13 +252,18 @@ export default function Dashboard() {
           <p className="text-muted-foreground text-lg">
             Escaneie seus arquivos e sites com IA avançada
           </p>
+          {!isSubscribed && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Scans este mês: {scansThisMonth}/{MAX_FREE_SCANS}
+            </p>
+          )}
         </motion.div>
 
         {/* Scan Panel */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.1, duration: 0.8 }}
           className="max-w-3xl mx-auto mb-12"
         >
           <div className="glass-hover p-8 rounded-2xl">
@@ -207,7 +294,7 @@ export default function Dashboard() {
               <TabsContent value="file" className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="file">Arquivo da Aplicação</Label>
-                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer glass">
+                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-all duration-500 cursor-pointer glass">
                     <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                     <Input
                       id="file"
@@ -227,9 +314,9 @@ export default function Dashboard() {
             </Tabs>
 
             <Button
-              onClick={handleScan}
+              onClick={handleScanRequest}
               disabled={isScanning}
-              className="w-full mt-6 btn-glow bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="w-full mt-6 btn-glow btn-zoom bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Shield className="w-5 h-5 mr-2" />
               {isScanning ? 'Analisando...' : 'Iniciar Scan com IA'}
@@ -241,42 +328,85 @@ export default function Dashboard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.2, duration: 0.8 }}
           className="max-w-5xl mx-auto"
         >
           <h2 className="text-2xl font-bold mb-6">Histórico de Scans</h2>
-          <div className="space-y-4">
-            {history.map((scan) => (
-              <div key={scan.id} className="glass-hover p-6 rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    {getStatusIcon(scan.status)}
-                    <div>
-                      <h3 className="font-semibold">{scan.target}</h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                        <Clock className="w-4 h-4" />
-                        {scan.date}
+          {scans.length === 0 ? (
+            <div className="glass-hover p-12 rounded-xl text-center">
+              <Shield className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <h3 className="text-xl font-semibold mb-2">Nenhum scan realizado ainda</h3>
+              <p className="text-muted-foreground">
+                Comece fazendo seu primeiro scan de segurança
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {scans.map((scan) => (
+                <div key={scan.id} className="glass-hover p-6 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      {getStatusIcon(scan.severity)}
+                      <div>
+                        <h3 className="font-semibold">{scan.target}</h3>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                          <Clock className="w-4 h-4" />
+                          {new Date(scan.created_at).toLocaleString('pt-BR')}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className={`px-3 py-1 rounded-full text-sm ${
-                      scan.status === 'safe' ? 'bg-green-500/10 text-green-500' :
-                      scan.status === 'warning' ? 'bg-yellow-500/10 text-yellow-500' :
-                      'bg-red-500/10 text-red-500'
-                    }`}>
-                      {getStatusText(scan.status)}
-                    </span>
-                    <Button variant="ghost" size="sm">
-                      Ver Relatório
-                    </Button>
+                    <div className="flex items-center gap-4">
+                      <span className={`px-3 py-1 rounded-full text-sm ${
+                        scan.severity === 'safe' ? 'bg-green-500/10 text-green-500' :
+                        scan.severity === 'warning' ? 'bg-yellow-500/10 text-yellow-500' :
+                        scan.severity === 'danger' ? 'bg-red-500/10 text-red-500' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        {getStatusText(scan.severity)}
+                      </span>
+                      <Button variant="ghost" size="sm" className="btn-zoom">
+                        Ver Relatório
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </motion.div>
       </main>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent className="glass">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Scan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a iniciar uma análise de segurança em:
+              <br />
+              <strong className="text-foreground">
+                {pendingScanData?.file ? pendingScanData.file.name : pendingScanData?.url}
+              </strong>
+              <br /><br />
+              {!isSubscribed && (
+                <span className="text-yellow-500">
+                  Isso usará 1 de seus {MAX_FREE_SCANS} scans gratuitos mensais.
+                  <br />
+                  Scans restantes: {MAX_FREE_SCANS - scansThisMonth - 1}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="btn-zoom">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmScan}
+              className="btn-glow btn-zoom bg-primary hover:bg-primary/90"
+            >
+              Confirmar Scan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Footer />
     </div>

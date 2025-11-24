@@ -9,7 +9,9 @@ import {
 } from './ui/dropdown-menu';
 import { useRegion, REGIONS, Region } from '@/contexts/RegionContext';
 import { useI18n } from '@/contexts/I18nContext';
+import { supabase } from '@/integrations/supabase/client';
 import logo from '@/assets/logo.jpg';
+import { useEffect, useState } from 'react';
 
 type NavbarProps = {
   isAuthenticated?: boolean;
@@ -19,10 +21,25 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
   const { region, setRegion, regionConfig } = useRegion();
   const { t } = useI18n();
   const navigate = useNavigate();
+  const [userAuthenticated, setUserAuthenticated] = useState(isAuthenticated);
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    navigate('/auth');
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUserAuthenticated(!!session);
+    };
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
   };
 
   return (
@@ -39,7 +56,7 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-6 ml-auto mr-6">
-            {isAuthenticated && (
+            {userAuthenticated && (
               <Link
                 to="/dashboard"
                 className="text-foreground/80 hover:text-primary transition-colors"
@@ -49,7 +66,7 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
             )}
             <Link
               to="/pricing"
-              className="text-foreground/80 hover:text-primary transition-colors"
+              className={`text-foreground/80 hover:text-primary transition-colors ${userAuthenticated ? 'font-bold text-primary' : ''}`}
             >
               {t('nav.pricing')}
             </Link>
@@ -79,29 +96,39 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
             </DropdownMenu>
 
             {/* Auth Actions */}
-            {isAuthenticated ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('nav.logout')}</span>
-              </Button>
+            {userAuthenticated ? (
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => navigate('/dashboard')}
+                  className="btn-glow btn-zoom bg-primary hover:bg-primary/90"
+                >
+                  {t('nav.dashboard')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t('nav.logout')}</span>
+                </Button>
+              </>
             ) : (
               <>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate('/auth')}
+                  className="btn-zoom"
                 >
                   {t('nav.login')}
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => navigate('/auth')}
-                  className="btn-glow bg-primary hover:bg-primary/90"
+                  className="btn-glow btn-zoom bg-primary hover:bg-primary/90"
                 >
                   {t('nav.start_free')}
                 </Button>
