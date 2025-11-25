@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Upload, Link as LinkIcon, Shield, Clock, CheckCircle, AlertTriangle, Crown } from 'lucide-react';
+import { Upload, Link as LinkIcon, Shield, Clock, CheckCircle, AlertTriangle, Crown, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -57,6 +57,63 @@ export default function Dashboard() {
   useEffect(() => {
     checkAuthAndSubscription();
     loadScans();
+
+    // Set up realtime subscription for scan updates
+    const channel = supabase
+      .channel('scans-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'scans'
+        },
+        (payload) => {
+          console.log('Scan update received:', payload);
+          
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            loadScans();
+            
+            // Show notification when scan completes
+            if (payload.new.status === 'completed') {
+              const newScan = payload.new as Scan;
+              const severity = newScan.severity;
+              const vulnCount = newScan.vulnerabilities_count;
+              
+              if (severity === 'danger' && vulnCount > 0) {
+                toast.error(
+                  `Scan concluído: ${vulnCount} vulnerabilidade${vulnCount > 1 ? 's' : ''} ${vulnCount > 1 ? 'encontradas' : 'encontrada'}!`,
+                  {
+                    description: 'Clique no relatório para ver os detalhes.',
+                    duration: 5000,
+                  }
+                );
+              } else if (severity === 'warning' && vulnCount > 0) {
+                toast.warning(
+                  `Scan concluído: ${vulnCount} problema${vulnCount > 1 ? 's' : ''} ${vulnCount > 1 ? 'encontrados' : 'encontrado'}`,
+                  {
+                    description: 'Verifique o relatório para mais informações.',
+                    duration: 5000,
+                  }
+                );
+              } else {
+                toast.success(
+                  'Scan concluído com sucesso!',
+                  {
+                    description: 'Nenhuma vulnerabilidade detectada.',
+                    duration: 3000,
+                  }
+                );
+              }
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [navigate]);
 
   const checkAuthAndSubscription = async () => {
@@ -122,6 +179,31 @@ export default function Dashboard() {
       }
     }
 
+    // Validate file if provided
+    if (file) {
+      const maxSize = 20 * 1024 * 1024; // 20MB
+      if (file.size > maxSize) {
+        toast.error('Arquivo muito grande. Tamanho máximo: 20MB');
+        return;
+      }
+
+      const allowedTypes = [
+        'text/plain',
+        'application/javascript',
+        'text/javascript',
+        'application/json',
+        'text/html',
+        'text/css',
+        'application/x-python',
+        'text/x-python',
+      ];
+
+      if (!allowedTypes.includes(file.type) && !file.name.match(/\.(js|ts|jsx|tsx|py|html|css|json|txt)$/i)) {
+        toast.error('Tipo de arquivo não suportado. Use arquivos de código-fonte.');
+        return;
+      }
+    }
+
     // Check scan limits for free users
     if (!isSubscribed && scansThisMonth >= MAX_FREE_SCANS) {
       toast.error(`Limite de ${MAX_FREE_SCANS} scans gratuitos por mês atingido. Faça upgrade para continuar.`);
@@ -138,7 +220,7 @@ export default function Dashboard() {
 
     setShowConfirmDialog(false);
     setIsScanning(true);
-    toast.info('Analisando vulnerabilidades...');
+    toast.info('Iniciando análise de segurança com IA...');
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -154,28 +236,28 @@ export default function Dashboard() {
           user_id: user.id,
           target,
           scan_type: scanType,
-          status: 'processing'
+          status: 'pending'
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      // Simulate AI scan (in production, this would call Lovable AI)
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      // Call edge function for AI analysis
+      const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-security', {
+        body: {
+          target,
+          scanType,
+          scanId: newScan.id
+        }
+      });
 
-      // Update scan with results
-      const { error: updateError } = await supabase
-        .from('scans')
-        .update({
-          status: 'completed',
-          severity: 'safe',
-          vulnerabilities_count: 0,
-          result: { message: 'Nenhuma vulnerabilidade detectada' }
-        })
-        .eq('id', newScan.id);
+      if (analysisError) {
+        console.error('Analysis error:', analysisError);
+        throw analysisError;
+      }
 
-      if (updateError) throw updateError;
+      console.log('Analysis complete:', analysisData);
 
       await loadScans();
       await checkAuthAndSubscription();
@@ -183,7 +265,7 @@ export default function Dashboard() {
       setUrl('');
       setFile(null);
       setPendingScanData(null);
-      toast.success('Scan concluído! Nenhuma vulnerabilidade detectada.');
+      toast.success('Análise de segurança iniciada! Aguarde a conclusão...');
     } catch (error) {
       console.error('Error during scan:', error);
       toast.error('Erro ao realizar scan. Tente novamente.');
@@ -192,7 +274,14 @@ export default function Dashboard() {
     }
   };
 
-  const getStatusIcon = (severity: string | null) => {
+  const getStatusIcon = (status: string, severity: string | null) => {
+    if (status === 'processing' || status === 'pending') {
+      return <Clock className="w-5 h-5 text-muted-foreground animate-spin" />;
+    }
+    if (status === 'failed') {
+      return <XCircle className="w-5 h-5 text-red-500" />;
+    }
+    
     switch (severity) {
       case 'safe':
         return <CheckCircle className="w-5 h-5 text-green-500" />;
@@ -201,18 +290,25 @@ export default function Dashboard() {
       case 'danger':
         return <AlertTriangle className="w-5 h-5 text-red-500" />;
       default:
-        return <Clock className="w-5 h-5 text-muted-foreground" />;
+        return <Shield className="w-5 h-5 text-muted-foreground" />;
     }
   };
 
-  const getStatusText = (severity: string | null) => {
+  const getStatusText = (status: string, severity: string | null) => {
+    if (status === 'processing' || status === 'pending') {
+      return 'Analisando...';
+    }
+    if (status === 'failed') {
+      return 'Falhou';
+    }
+    
     switch (severity) {
       case 'safe':
         return 'Seguro';
       case 'warning':
         return 'Atenção';
       case 'danger':
-        return 'Risco';
+        return 'Risco Alto';
       default:
         return 'Processando';
     }
@@ -293,12 +389,13 @@ export default function Dashboard() {
 
               <TabsContent value="file" className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="file">Arquivo da Aplicação</Label>
+                  <Label htmlFor="file">Arquivo da Aplicação (código-fonte)</Label>
                   <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-all duration-500 cursor-pointer glass">
                     <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                     <Input
                       id="file"
                       type="file"
+                      accept=".js,.ts,.jsx,.tsx,.py,.html,.css,.json,.txt"
                       onChange={(e) => setFile(e.target.files?.[0] || null)}
                       className="hidden"
                       disabled={isScanning}
@@ -306,6 +403,9 @@ export default function Dashboard() {
                     <label htmlFor="file" className="cursor-pointer">
                       <p className="text-sm text-muted-foreground">
                         {file ? file.name : 'Clique para fazer upload ou arraste o arquivo'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Formatos: .js, .ts, .py, .html, .css, .json (máx. 20MB)
                       </p>
                     </label>
                   </div>
@@ -319,7 +419,7 @@ export default function Dashboard() {
               className="w-full mt-6 btn-glow btn-zoom bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               <Shield className="w-5 h-5 mr-2" />
-              {isScanning ? 'Analisando...' : 'Iniciar Scan com IA'}
+              {isScanning ? 'Analisando...' : 'Iniciar Análise de Segurança'}
             </Button>
           </div>
         </motion.div>
@@ -331,13 +431,13 @@ export default function Dashboard() {
           transition={{ delay: 0.2, duration: 0.8 }}
           className="max-w-5xl mx-auto"
         >
-          <h2 className="text-2xl font-bold mb-6">Histórico de Scans</h2>
+          <h2 className="text-2xl font-bold mb-6">Histórico de Análises</h2>
           {scans.length === 0 ? (
             <div className="glass-hover p-12 rounded-xl text-center">
               <Shield className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-xl font-semibold mb-2">Nenhum scan realizado ainda</h3>
+              <h3 className="text-xl font-semibold mb-2">Nenhuma análise realizada ainda</h3>
               <p className="text-muted-foreground">
-                Comece fazendo seu primeiro scan de segurança
+                Comece fazendo sua primeira análise de segurança
               </p>
             </div>
           ) : (
@@ -346,27 +446,40 @@ export default function Dashboard() {
                 <div key={scan.id} className="glass-hover p-6 rounded-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      {getStatusIcon(scan.severity)}
+                      {getStatusIcon(scan.status, scan.severity)}
                       <div>
                         <h3 className="font-semibold">{scan.target}</h3>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                           <Clock className="w-4 h-4" />
                           {new Date(scan.created_at).toLocaleString('pt-BR')}
                         </div>
+                        {scan.vulnerabilities_count > 0 && scan.status === 'completed' && (
+                          <p className="text-sm text-red-500 mt-1">
+                            {scan.vulnerabilities_count} vulnerabilidade{scan.vulnerabilities_count > 1 ? 's' : ''} detectada{scan.vulnerabilities_count > 1 ? 's' : ''}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <span className={`px-3 py-1 rounded-full text-sm ${
-                        scan.severity === 'safe' ? 'bg-green-500/10 text-green-500' :
-                        scan.severity === 'warning' ? 'bg-yellow-500/10 text-yellow-500' :
-                        scan.severity === 'danger' ? 'bg-red-500/10 text-red-500' :
+                        scan.status === 'completed' && scan.severity === 'safe' ? 'bg-green-500/10 text-green-500' :
+                        scan.status === 'completed' && scan.severity === 'warning' ? 'bg-yellow-500/10 text-yellow-500' :
+                        scan.status === 'completed' && scan.severity === 'danger' ? 'bg-red-500/10 text-red-500' :
+                        scan.status === 'failed' ? 'bg-red-500/10 text-red-500' :
                         'bg-muted text-muted-foreground'
                       }`}>
-                        {getStatusText(scan.severity)}
+                        {getStatusText(scan.status, scan.severity)}
                       </span>
-                      <Button variant="ghost" size="sm" className="btn-zoom">
-                        Ver Relatório
-                      </Button>
+                      {scan.status === 'completed' && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="btn-zoom"
+                          onClick={() => navigate(`/scan/${scan.id}`)}
+                        >
+                          Ver Relatório
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -379,14 +492,21 @@ export default function Dashboard() {
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent className="glass">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Scan</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar Análise de Segurança</AlertDialogTitle>
             <AlertDialogDescription>
-              Você está prestes a iniciar uma análise de segurança em:
+              Você está prestes a iniciar uma análise completa de segurança em:
               <br />
               <strong className="text-foreground">
                 {pendingScanData?.file ? pendingScanData.file.name : pendingScanData?.url}
               </strong>
               <br /><br />
+              A análise incluirá verificação de:
+              <ul className="list-disc list-inside text-sm mt-2">
+                <li>SQL Injection</li>
+                <li>Cross-Site Scripting (XSS)</li>
+                <li>CSRF e outras vulnerabilidades OWASP Top 10</li>
+              </ul>
+              <br />
               {!isSubscribed && (
                 <span className="text-yellow-500">
                   Isso usará 1 de seus {MAX_FREE_SCANS} scans gratuitos mensais.
@@ -402,7 +522,7 @@ export default function Dashboard() {
               onClick={handleConfirmScan}
               className="btn-glow btn-zoom bg-primary hover:bg-primary/90"
             >
-              Confirmar Scan
+              Confirmar Análise
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
