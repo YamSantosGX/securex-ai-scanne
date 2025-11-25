@@ -16,7 +16,7 @@ const translations = {
     // Home
     'home.hero.title': 'Proteção de Classe',
     'home.hero.title_highlight': 'Mundial',
-    'home.hero.subtitle': 'Escaneie e proteja suas aplicações com inteligência artificial avançada',
+    'home.hero.subtitle': 'Plataforma profissional de cybersegurança que analisa, detecta e corrige vulnerabilidades em tempo real usando IA avançada',
     'home.hero.subtitle_line2': 'para suas',
     'home.hero.applications': 'Aplicações',
     'home.cta.start': 'Começar Agora',
@@ -105,7 +105,7 @@ const translations = {
     // Home
     'home.hero.title': 'World-Class',
     'home.hero.title_highlight': 'Protection',
-    'home.hero.subtitle': 'Scan and protect your applications with advanced artificial intelligence',
+    'home.hero.subtitle': 'Professional cybersecurity platform that analyzes, detects and fixes vulnerabilities in real-time using advanced AI',
     'home.hero.subtitle_line2': 'for your',
     'home.hero.applications': 'Applications',
     'home.cta.start': 'Get Started',
@@ -194,7 +194,7 @@ const translations = {
     // Home
     'home.hero.title': 'Schutz der',
     'home.hero.title_highlight': 'Weltklasse',
-    'home.hero.subtitle': 'Scannen und schützen Sie Ihre Anwendungen mit fortschrittlicher künstlicher Intelligenz',
+    'home.hero.subtitle': 'Professionelle Cybersicherheitsplattform, die Schwachstellen in Echtzeit mit fortschrittlicher KI analysiert, erkennt und behebt',
     'home.hero.subtitle_line2': 'für Ihre',
     'home.hero.applications': 'Anwendungen',
     'home.cta.start': 'Jetzt starten',
@@ -283,7 +283,7 @@ const translations = {
     // Home
     'home.hero.title': 'Protection de',
     'home.hero.title_highlight': 'classe mondiale',
-    'home.hero.subtitle': 'Scannez et protégez vos applications avec une intelligence artificielle avancée',
+    'home.hero.subtitle': 'Plateforme professionnelle de cybersécurité qui analyse, détecte et corrige les vulnérabilités en temps réel avec IA avancée',
     'home.hero.subtitle_line2': 'pour vos',
     'home.hero.applications': 'Applications',
     'home.cta.start': 'Commencer maintenant',
@@ -372,7 +372,7 @@ const translations = {
     // Home
     'home.hero.title': 'Protección de',
     'home.hero.title_highlight': 'clase mundial',
-    'home.hero.subtitle': 'Escanea y protege tus aplicaciones con inteligencia artificial avanzada',
+    'home.hero.subtitle': 'Plataforma profesional de ciberseguridad que analiza, detecta y corrige vulnerabilidades en tiempo real usando IA avanzada',
     'home.hero.subtitle_line2': 'para tus',
     'home.hero.applications': 'Aplicaciones',
     'home.cta.start': 'Comenzar ahora',
@@ -461,7 +461,7 @@ const translations = {
     // Home
     'home.hero.title': 'Protezione di',
     'home.hero.title_highlight': 'classe mondiale',
-    'home.hero.subtitle': 'Scansiona e proteggi le tue applicazioni con intelligenza artificiale avanzata',
+    'home.hero.subtitle': 'Piattaforma professionale di cybersecurity che analizza, rileva e corregge vulnerabilità in tempo reale usando IA avanzata',
     'home.hero.subtitle_line2': 'per le tue',
     'home.hero.applications': 'Applicazioni',
     'home.cta.start': 'Inizia ora',
