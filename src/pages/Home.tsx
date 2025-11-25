@@ -110,7 +110,7 @@ export default function Home() {
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => window.open('https://discord.gg/discloud', '_blank')}
+                onClick={() => window.open('https://discord.gg/X36RjdnReJ', '_blank')}
                 className="px-8 py-5 text-base glass-hover btn-zoom w-full sm:w-auto"
               >
                 <MessageCircle className="mr-2 w-5 h-5" />

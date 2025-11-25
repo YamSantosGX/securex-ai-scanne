@@ -16,13 +16,45 @@ serve(async (req) => {
     const { target, scanType, scanId } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
+    // Extract and verify authenticated user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Unauthorized: No authorization header');
+    }
+
+    // Create client to verify user
+    const userClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      throw new Error('Unauthorized: Invalid token');
+    }
+
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+    // Verify scan ownership before updating
+    const { data: scan, error: scanError } = await supabase
+      .from('scans')
+      .select('user_id')
+      .eq('id', scanId)
+      .single();
+
+    if (scanError || !scan) {
+      throw new Error('Scan not found');
+    }
+
+    if (scan.user_id !== user.id) {
+      throw new Error('Unauthorized: You do not have permission to modify this scan');
+    }
 
     console.log(`Starting security analysis for ${scanType}: ${target}`);
 

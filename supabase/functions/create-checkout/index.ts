@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.21.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.84.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,26 +19,92 @@ serve(async (req) => {
       throw new Error('STRIPE_SECRET_KEY not configured');
     }
 
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: '2023-10-16',
+    // Extract and verify authenticated user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
     });
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const { priceId, returnUrl } = await req.json();
 
     if (!priceId || !returnUrl) {
       return new Response(
         JSON.stringify({ error: 'Missing priceId or returnUrl' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Creating checkout session with:', { priceId, returnUrl });
+    // Validate returnUrl to prevent open redirect
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:8080',
+    ];
+
+    try {
+      const url = new URL(returnUrl);
+      const isLovableApp = url.hostname.endsWith('.lovable.app');
+      const isAllowedOrigin = allowedOrigins.includes(url.origin);
+      
+      if (!isAllowedOrigin && !isLovableApp) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid returnUrl' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid URL format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: '2023-10-16',
+    });
+
+    // Create or retrieve Stripe customer for the user
+    let customerId: string;
+    const customers = await stripe.customers.list({ 
+      email: user.email!, 
+      limit: 1 
+    });
+
+    if (customers.data.length > 0) {
+      customerId = customers.data[0].id;
+    } else {
+      const customer = await stripe.customers.create({ 
+        email: user.email!,
+        metadata: {
+          supabase_user_id: user.id
+        }
+      });
+      customerId = customer.id;
+    }
+
+    console.log('Creating checkout session with:', { priceId, returnUrl, customerId });
 
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      client_reference_id: user.id,
       payment_method_types: ['card'],
       line_items: [
         {
