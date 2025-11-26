@@ -113,6 +113,8 @@ export default function Pricing() {
       description: t('plan.free.description'),
       features: [
         t('plan.free.feature1'),
+        '5 scans por mês',
+        'Limite de arquivo: 50MB',
         t('plan.free.feature2'),
         t('plan.free.feature3'),
         t('plan.free.feature4'),
@@ -127,6 +129,10 @@ export default function Pricing() {
       description: t('plan.pro.description'),
       features: [
         t('plan.pro.feature1'),
+        'Scans ilimitados',
+        'Limite de arquivo: 600MB',
+        'Integração GitHub/GitLab',
+        'Exportação de relatórios em PDF',
         t('plan.pro.feature2'),
         t('plan.pro.feature3'),
         t('plan.pro.feature4'),

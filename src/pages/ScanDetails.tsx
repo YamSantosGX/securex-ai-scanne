@@ -9,7 +9,8 @@ import {
   Clock,
   FileText,
   Code,
-  AlertCircle
+  AlertCircle,
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +18,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
 
 type Vulnerability = {
   type: string;
@@ -123,6 +125,68 @@ export default function ScanDetails() {
     }
   };
 
+  const exportToPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const result = scan?.result as ScanResult;
+      
+      // Header
+      doc.setFontSize(20);
+      doc.text('Relatório de Segurança - SecureX', 20, 20);
+      
+      doc.setFontSize(12);
+      doc.text(`Alvo: ${scan?.target}`, 20, 35);
+      doc.text(`Data: ${new Date(scan?.created_at || '').toLocaleString('pt-BR')}`, 20, 42);
+      doc.text(`Severidade: ${scan?.severity === 'safe' ? 'Seguro' : scan?.severity === 'warning' ? 'Atenção' : 'Risco Alto'}`, 20, 49);
+      
+      // Summary
+      doc.setFontSize(16);
+      doc.text('Resumo', 20, 65);
+      doc.setFontSize(11);
+      doc.text(`Total de Vulnerabilidades: ${result?.summary?.total || 0}`, 20, 75);
+      doc.text(`Crítico: ${result?.summary?.critical || 0} | Alto: ${result?.summary?.high || 0} | Médio: ${result?.summary?.medium || 0} | Baixo: ${result?.summary?.low || 0}`, 20, 82);
+      
+      // Vulnerabilities
+      let yPos = 100;
+      doc.setFontSize(16);
+      doc.text('Vulnerabilidades Detectadas', 20, yPos);
+      yPos += 10;
+      
+      if (!result?.vulnerabilities || result.vulnerabilities.length === 0) {
+        doc.setFontSize(11);
+        doc.text('Nenhuma vulnerabilidade detectada', 20, yPos);
+      } else {
+        result.vulnerabilities.forEach((vuln, index) => {
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 20;
+          }
+          
+          doc.setFontSize(12);
+          doc.text(`${index + 1}. ${vuln.title} [${vuln.severity.toUpperCase()}]`, 20, yPos);
+          yPos += 7;
+          
+          doc.setFontSize(10);
+          const descLines = doc.splitTextToSize(vuln.description, 170);
+          doc.text(descLines, 25, yPos);
+          yPos += descLines.length * 5 + 5;
+          
+          if (vuln.recommendation) {
+            const recLines = doc.splitTextToSize(`Recomendação: ${vuln.recommendation}`, 170);
+            doc.text(recLines, 25, yPos);
+            yPos += recLines.length * 5 + 10;
+          }
+        });
+      }
+      
+      doc.save(`scan-report-${scan?.id}.pdf`);
+      toast.success('Relatório exportado com sucesso!');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Erro ao exportar relatório');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -158,14 +222,24 @@ export default function ScanDetails() {
             Voltar ao Dashboard
           </Button>
 
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
             <h1 className="text-4xl font-bold">
               Relatório de <span className="glow-text">Segurança</span>
             </h1>
-            <Badge className={getSeverityColor(scan.severity || 'safe')}>
-              {scan.severity === 'safe' ? 'Seguro' : 
-               scan.severity === 'warning' ? 'Atenção' : 'Risco Alto'}
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={exportToPDF}
+                className="btn-glow btn-zoom"
+                size="sm"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Exportar PDF
+              </Button>
+              <Badge className={getSeverityColor(scan.severity || 'safe')}>
+                {scan.severity === 'safe' ? 'Seguro' : 
+                 scan.severity === 'warning' ? 'Atenção' : 'Risco Alto'}
+              </Badge>
+            </div>
           </div>
 
           <div className="flex items-center gap-4 text-muted-foreground">

@@ -1,12 +1,33 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Upload, Link as LinkIcon, Shield, Clock, CheckCircle, AlertTriangle, Crown, XCircle } from 'lucide-react';
+import { 
+  Upload, 
+  Link as LinkIcon, 
+  Shield, 
+  Clock, 
+  CheckCircle, 
+  AlertTriangle, 
+  Crown, 
+  XCircle, 
+  Github, 
+  GitBranch,
+  TrendingUp,
+  Activity,
+  Filter
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,7 +54,7 @@ const urlSchema = z.string()
 type Scan = {
   id: string;
   target: string;
-  scan_type: 'file' | 'url';
+  scan_type: 'file' | 'url' | 'github';
   status: 'pending' | 'processing' | 'completed' | 'failed';
   severity: 'safe' | 'warning' | 'danger' | null;
   vulnerabilities_count: number;
@@ -45,14 +66,20 @@ export default function Dashboard() {
   const [isScanning, setIsScanning] = useState(false);
   const [url, setUrl] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [githubUrl, setGithubUrl] = useState('');
   const [scans, setScans] = useState<Scan[]>([]);
+  const [filteredScans, setFilteredScans] = useState<Scan[]>([]);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [scansThisMonth, setScansThisMonth] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [pendingScanData, setPendingScanData] = useState<{ url?: string; file?: File } | null>(null);
+  const [pendingScanData, setPendingScanData] = useState<{ url?: string; file?: File; githubUrl?: string } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [severityFilter, setSeverityFilter] = useState<string>('all');
 
   const MAX_FREE_SCANS = 5;
+  const MAX_FILE_SIZE_FREE = 50 * 1024 * 1024; // 50MB
+  const MAX_FILE_SIZE_PRO = 600 * 1024 * 1024; // 600MB
 
   useEffect(() => {
     checkAuthAndSubscription();
@@ -115,6 +142,24 @@ export default function Dashboard() {
       supabase.removeChannel(channel);
     };
   }, [navigate]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [scans, statusFilter, severityFilter]);
+
+  const applyFilters = () => {
+    let filtered = [...scans];
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(scan => scan.status === statusFilter);
+    }
+
+    if (severityFilter !== 'all') {
+      filtered = filtered.filter(scan => scan.severity === severityFilter);
+    }
+
+    setFilteredScans(filtered);
+  };
 
   const checkAuthAndSubscription = async () => {
     try {
@@ -181,25 +226,26 @@ export default function Dashboard() {
 
     // Validate file if provided
     if (file) {
-      const maxSize = 20 * 1024 * 1024; // 20MB
+      const maxSize = isSubscribed ? MAX_FILE_SIZE_PRO : MAX_FILE_SIZE_FREE;
+      const maxSizeMB = maxSize / (1024 * 1024);
+      
       if (file.size > maxSize) {
-        toast.error('Arquivo muito grande. Tamanho máximo: 20MB');
+        toast.error(`Arquivo muito grande. Tamanho máximo: ${maxSizeMB}MB`);
         return;
       }
 
-      const allowedTypes = [
-        'text/plain',
-        'application/javascript',
-        'text/javascript',
-        'application/json',
-        'text/html',
-        'text/css',
-        'application/x-python',
-        'text/x-python',
-      ];
+      const allowedExtensions = /\.(js|ts|jsx|tsx|py|html|css|json|txt|php|rb|java|go|rs|c|cpp|cs|yml|yaml|xml|toml|ini|env|tf|dockerfile|kt|swift|sh|bash|ps1|bat|sql|md)$/i;
 
-      if (!allowedTypes.includes(file.type) && !file.name.match(/\.(js|ts|jsx|tsx|py|html|css|json|txt)$/i)) {
-        toast.error('Tipo de arquivo não suportado. Use arquivos de código-fonte.');
+      if (!file.name.match(allowedExtensions)) {
+        toast.error('Tipo de arquivo não suportado. Use arquivos de código-fonte, configuração ou scripts.');
+        return;
+      }
+    }
+
+    // Validate GitHub URL if provided
+    if (githubUrl) {
+      if (!githubUrl.match(/^https:\/\/github\.com\/[\w-]+\/[\w-]+/)) {
+        toast.error('URL do GitHub inválida. Use o formato: https://github.com/usuario/repositorio');
         return;
       }
     }
@@ -211,7 +257,7 @@ export default function Dashboard() {
       return;
     }
 
-    setPendingScanData({ url: url || undefined, file: file || undefined });
+    setPendingScanData({ url: url || undefined, file: file || undefined, githubUrl: githubUrl || undefined });
     setShowConfirmDialog(true);
   };
 
@@ -226,8 +272,17 @@ export default function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const target = pendingScanData.file ? pendingScanData.file.name : pendingScanData.url || '';
-      const scanType = pendingScanData.file ? 'file' : 'url';
+      const target = pendingScanData.file 
+        ? pendingScanData.file.name 
+        : pendingScanData.githubUrl 
+          ? pendingScanData.githubUrl 
+          : pendingScanData.url || '';
+      
+      const scanType = pendingScanData.file 
+        ? 'file' 
+        : pendingScanData.githubUrl 
+          ? 'github' 
+          : 'url';
 
       // Create scan record
       const { data: newScan, error } = await supabase
@@ -264,6 +319,7 @@ export default function Dashboard() {
       
       setUrl('');
       setFile(null);
+      setGithubUrl('');
       setPendingScanData(null);
       toast.success('Análise de segurança iniciada! Aguarde a conclusão...');
     } catch (error) {
@@ -355,6 +411,40 @@ export default function Dashboard() {
           )}
         </motion.div>
 
+        {/* Stats Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05, duration: 0.8 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12 max-w-3xl mx-auto"
+        >
+          <div className="glass-hover p-6 rounded-xl text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Activity className="w-5 h-5 text-primary" />
+              <div className="text-3xl font-bold">{scans.length}</div>
+            </div>
+            <div className="text-sm text-muted-foreground">Total de Scans</div>
+          </div>
+          <div className="glass-hover p-6 rounded-xl text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <AlertTriangle className="w-5 h-5 text-orange-500" />
+              <div className="text-3xl font-bold">
+                {scans.reduce((acc, scan) => acc + (scan.vulnerabilities_count || 0), 0)}
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground">Vulnerabilidades</div>
+          </div>
+          <div className="glass-hover p-6 rounded-xl text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <TrendingUp className="w-5 h-5 text-green-500" />
+              <div className="text-3xl font-bold">
+                {scans.filter(s => s.severity === 'safe').length}/{scans.length}
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground">Seguros</div>
+          </div>
+        </motion.div>
+
         {/* Scan Panel */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -364,9 +454,13 @@ export default function Dashboard() {
         >
           <div className="glass-hover p-8 rounded-2xl">
             <Tabs defaultValue="url" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsList className="grid w-full grid-cols-3 mb-6">
                 <TabsTrigger value="url">URL do Site</TabsTrigger>
                 <TabsTrigger value="file">Upload de Arquivo</TabsTrigger>
+                <TabsTrigger value="github">
+                  <Github className="w-4 h-4 mr-2" />
+                  GitHub
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="url" className="space-y-4">
@@ -389,41 +483,74 @@ export default function Dashboard() {
 
               <TabsContent value="file" className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="file">Arquivo da Aplicação (código-fonte)</Label>
+                  <Label htmlFor="file">Arquivo de Código-Fonte</Label>
                   <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-all duration-500 cursor-pointer glass">
                     <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                     <Input
                       id="file"
                       type="file"
-                      accept=".js,.ts,.jsx,.tsx,.py,.html,.css,.json,.txt"
+                      accept=".js,.ts,.jsx,.tsx,.py,.html,.css,.json,.txt,.php,.rb,.java,.go,.rs,.c,.cpp,.cs,.yml,.yaml,.xml,.toml,.ini,.env,.tf,.dockerfile,.kt,.swift,.sh,.bash,.ps1,.bat,.sql,.md"
                       onChange={(e) => setFile(e.target.files?.[0] || null)}
                       className="hidden"
                       disabled={isScanning}
                     />
-                    <label htmlFor="file" className="cursor-pointer">
-                      <p className="text-sm text-muted-foreground">
-                        {file ? file.name : 'Clique para fazer upload ou arraste o arquivo'}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Formatos: .js, .ts, .py, .html, .css, .json (máx. 20MB)
-                      </p>
+                    <label
+                      htmlFor="file"
+                      className="cursor-pointer text-primary hover:text-primary/80 transition-colors"
+                    >
+                      {file ? file.name : 'Clique para selecionar um arquivo'}
                     </label>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Tamanho máximo: {isSubscribed ? '600MB' : '50MB'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Suportados: JavaScript, TypeScript, Python, Java, PHP, Ruby, Go, Rust, C/C++, C#, YAML, XML, SQL, Shell, e mais
+                    </p>
                   </div>
                 </div>
               </TabsContent>
-            </Tabs>
 
-            <Button
-              onClick={handleScanRequest}
-              disabled={isScanning}
-              className="w-full mt-6 btn-glow btn-zoom bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Shield className="w-5 h-5 mr-2" />
-              {isScanning ? 'Analisando...' : 'Iniciar Análise de Segurança'}
-            </Button>
+              <TabsContent value="github" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="github">URL do Repositório GitHub</Label>
+                  <div className="relative">
+                    <GitBranch className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      id="github"
+                      type="url"
+                      placeholder="https://github.com/usuario/repositorio"
+                      value={githubUrl}
+                      onChange={(e) => setGithubUrl(e.target.value)}
+                      className="pl-10 glass"
+                      disabled={isScanning}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Analisaremos os arquivos principais do repositório
+                  </p>
+                </div>
+              </TabsContent>
+
+              <Button
+                onClick={handleScanRequest}
+                disabled={isScanning || (!url && !file && !githubUrl)}
+                className="w-full mt-6 btn-glow btn-zoom bg-primary hover:bg-primary/90"
+              >
+                {isScanning ? (
+                  <>
+                    <Clock className="w-4 h-4 mr-2 animate-spin" />
+                    Analisando...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-4 h-4 mr-2" />
+                    Iniciar Análise de Segurança
+                  </>
+                )}
+              </Button>
+            </Tabs>
           </div>
         </motion.div>
-
         {/* History */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -431,18 +558,49 @@ export default function Dashboard() {
           transition={{ delay: 0.2, duration: 0.8 }}
           className="max-w-5xl mx-auto"
         >
-          <h2 className="text-2xl font-bold mb-6">Histórico de Análises</h2>
-          {scans.length === 0 ? (
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">Histórico de Análises</h2>
+            <div className="flex items-center gap-3">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px] glass">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="glass">
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="completed">Completo</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="processing">Processando</SelectItem>
+                  <SelectItem value="failed">Falhou</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={severityFilter} onValueChange={setSeverityFilter}>
+                <SelectTrigger className="w-[140px] glass">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Severidade" />
+                </SelectTrigger>
+                <SelectContent className="glass">
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="safe">Seguro</SelectItem>
+                  <SelectItem value="warning">Atenção</SelectItem>
+                  <SelectItem value="danger">Risco</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {filteredScans.length === 0 ? (
             <div className="glass-hover p-12 rounded-xl text-center">
               <Shield className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-xl font-semibold mb-2">Nenhuma análise realizada ainda</h3>
+              <h3 className="text-xl font-semibold mb-2">Nenhuma análise encontrada</h3>
               <p className="text-muted-foreground">
-                Comece fazendo sua primeira análise de segurança
+                {scans.length === 0 ? 'Comece fazendo sua primeira análise de segurança' : 'Tente ajustar os filtros'}
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {scans.map((scan) => (
+              {filteredScans.map((scan) => (
                 <div key={scan.id} className="glass-hover p-6 rounded-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">

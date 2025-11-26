@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
-import { Shield, ArrowRight, Scan, Bell, CheckCircle2, MessageCircle } from 'lucide-react';
+import { Shield, ArrowRight, Scan, Bell, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
 import PoweredByFooter from '@/components/PoweredByFooter';
+import discordIcon from '@/assets/discord-icon.png';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -113,7 +114,7 @@ export default function Home() {
                 onClick={() => window.open('https://discord.gg/X36RjdnReJ', '_blank')}
                 className="px-8 py-5 text-base glass-hover btn-zoom w-full sm:w-auto"
               >
-                <MessageCircle className="mr-2 w-5 h-5" />
+                <img src={discordIcon} alt="Discord" className="mr-2 w-5 h-5" />
                 {t('home.cta.discord')}
               </Button>
             </motion.div>
