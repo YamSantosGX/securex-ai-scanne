@@ -12,6 +12,7 @@ import { useI18n } from '@/contexts/I18nContext';
 import { supabase } from '@/integrations/supabase/client';
 import logo from '@/assets/logo.jpg';
 import { useEffect, useState } from 'react';
+import { MobileMenu } from './MobileMenu';
 
 type NavbarProps = {
   isAuthenticated?: boolean;
@@ -87,45 +88,50 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Auth Actions */}
-            {userAuthenticated ? (
-              <>
-                <Button
-                  size="sm"
-                  onClick={() => navigate('/dashboard')}
-                  className="btn-glow btn-zoom bg-primary hover:bg-primary/90"
-                >
-                  {t('nav.dashboard')}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="gap-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('nav.logout')}</span>
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate('/auth')}
-                  className="btn-zoom"
-                >
-                  {t('nav.login')}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => navigate('/auth')}
-                  className="btn-glow btn-zoom bg-primary hover:bg-primary/90"
-                >
-                  {t('nav.start_free')}
-                </Button>
-              </>
-            )}
+            {/* Desktop Auth Actions */}
+            <div className="hidden md:flex items-center gap-3">
+              {userAuthenticated ? (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate('/dashboard')}
+                    className="btn-glow btn-zoom bg-primary hover:bg-primary/90"
+                  >
+                    {t('nav.dashboard')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline">{t('nav.logout')}</span>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/auth')}
+                    className="btn-zoom"
+                  >
+                    {t('nav.login')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate('/auth')}
+                    className="btn-glow btn-zoom bg-primary hover:bg-primary/90"
+                  >
+                    {t('nav.start_free')}
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Mobile Menu */}
+            <MobileMenu isAuthenticated={userAuthenticated} onLogout={handleLogout} />
           </div>
         </div>
       </div>
