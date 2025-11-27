@@ -34,6 +34,17 @@ export default function Pricing() {
     checkSubscriptionStatus();
   }, []);
 
+  // Redirect Pro users away from pricing page
+  useEffect(() => {
+    if (isSubscribed) {
+      navigate('/dashboard');
+      toast({
+        title: 'Você já é um membro PRO!',
+        description: 'Aproveite todos os benefícios da sua assinatura.',
+      });
+    }
+  }, [isSubscribed, navigate]);
+
   const checkSubscriptionStatus = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -113,11 +124,11 @@ export default function Pricing() {
       description: t('plan.free.description'),
       features: [
         t('plan.free.feature1'),
-        '5 scans por mês',
+        '5 análises por mês',
         'Limite de arquivo: 50MB',
-        t('plan.free.feature2'),
-        t('plan.free.feature3'),
-        t('plan.free.feature4'),
+        'Suporte por email',
+        'Relatórios básicos',
+        'Detecção de vulnerabilidades comuns',
       ],
       cta: t('plan.free.cta'),
       highlighted: false,
@@ -128,18 +139,18 @@ export default function Pricing() {
       price: 1,
       description: t('plan.pro.description'),
       features: [
-        t('plan.pro.feature1'),
-        'Scans ilimitados',
+        'Análises ilimitadas',
         'Limite de arquivo: 600MB',
+        'Monitoramento 24/7 em tempo real',
         'Integração GitHub/GitLab',
         'Exportação de relatórios em PDF',
-        t('plan.pro.feature2'),
-        t('plan.pro.feature3'),
-        t('plan.pro.feature4'),
-        t('plan.pro.feature5'),
-        t('plan.pro.feature6'),
-        t('plan.pro.feature7'),
-        t('plan.pro.feature8'),
+        'Alertas instantâneos de vulnerabilidades críticas',
+        'Análise avançada com IA',
+        'Suporte prioritário',
+        'Detecção de vulnerabilidades zero-day',
+        'Correções automáticas sugeridas',
+        'API de integração',
+        'Histórico completo de análises',
       ],
       cta: t('plan.pro.cta'),
       highlighted: true,

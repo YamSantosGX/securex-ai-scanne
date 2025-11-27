@@ -58,6 +58,7 @@ export default function ScanDetails() {
   const navigate = useNavigate();
   const [scan, setScan] = useState<Scan | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
     loadScanDetails();
@@ -69,6 +70,17 @@ export default function ScanDetails() {
       if (!user) {
         navigate('/auth');
         return;
+      }
+
+      // Check subscription status
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_status')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile?.subscription_status === 'active') {
+        setIsSubscribed(true);
       }
 
       const { data, error } = await supabase
@@ -126,6 +138,12 @@ export default function ScanDetails() {
   };
 
   const exportToPDF = () => {
+    if (!isSubscribed) {
+      toast.error('Exportação de PDF disponível apenas para membros PRO');
+      navigate('/pricing');
+      return;
+    }
+
     try {
       const doc = new jsPDF();
       const result = scan?.result as ScanResult;
@@ -227,14 +245,16 @@ export default function ScanDetails() {
               Relatório de <span className="glow-text">Segurança</span>
             </h1>
             <div className="flex items-center gap-3">
-              <Button
-                onClick={exportToPDF}
-                className="btn-glow btn-zoom"
-                size="sm"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Exportar PDF
-              </Button>
+              {isSubscribed && (
+                <Button
+                  onClick={exportToPDF}
+                  className="btn-glow btn-zoom"
+                  size="sm"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Exportar PDF
+                </Button>
+              )}
               <Badge className={getSeverityColor(scan.severity || 'safe')}>
                 {scan.severity === 'safe' ? 'Seguro' : 
                  scan.severity === 'warning' ? 'Atenção' : 'Risco Alto'}

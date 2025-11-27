@@ -52,7 +52,7 @@ export const Footer = () => {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all"
             >
-              <img src={discordIcon} alt="Discord" className="w-5 h-5" />
+              <img src={discordIcon} alt="Discord" className="w-5 h-5 brightness-0 invert" />
               Junte-se ao Discord
             </a>
           </div>
