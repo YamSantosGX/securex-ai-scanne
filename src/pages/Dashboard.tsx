@@ -84,6 +84,7 @@ export default function Dashboard() {
   useEffect(() => {
     checkAuthAndSubscription();
     loadScans();
+    requestNotificationPermission();
 
     // Set up realtime subscription for scan updates
     const channel = supabase
@@ -108,12 +109,18 @@ export default function Dashboard() {
               const vulnCount = newScan.vulnerabilities_count;
               
               if (severity === 'danger' && vulnCount > 0) {
+                const message = `${vulnCount} vulnerabilidade${vulnCount > 1 ? 's críticas' : ' crítica'} detectada${vulnCount > 1 ? 's' : ''}!`;
                 toast.error(
-                  `Scan concluído: ${vulnCount} vulnerabilidade${vulnCount > 1 ? 's' : ''} ${vulnCount > 1 ? 'encontradas' : 'encontrada'}!`,
+                  `Scan concluído: ${message}`,
                   {
                     description: 'Clique no relatório para ver os detalhes.',
                     duration: 5000,
                   }
+                );
+                // Send browser notification for critical vulnerabilities
+                sendBrowserNotification(
+                  '🔴 Alerta de Segurança Crítico',
+                  message + ' Verifique o relatório imediatamente.'
                 );
               } else if (severity === 'warning' && vulnCount > 0) {
                 toast.warning(
@@ -185,6 +192,29 @@ export default function Dashboard() {
       console.error('Error checking subscription:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          toast.success('Notificações ativadas! Você será alertado sobre vulnerabilidades críticas.');
+        }
+      } catch (error) {
+        console.error('Error requesting notification permission:', error);
+      }
+    }
+  };
+
+  const sendBrowserNotification = (title: string, body: string) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, {
+        body,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+      });
     }
   };
 

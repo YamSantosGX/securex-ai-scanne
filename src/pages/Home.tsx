@@ -114,7 +114,7 @@ export default function Home() {
                 onClick={() => window.open('https://discord.gg/X36RjdnReJ', '_blank')}
                 className="px-8 py-5 text-base glass-hover btn-zoom w-full sm:w-auto"
               >
-                <img src={discordIcon} alt="Discord" className="mr-2 w-5 h-5" />
+                <img src={discordIcon} alt="Discord" className="mr-2 w-5 h-5 brightness-0 invert" />
                 {t('home.cta.discord')}
               </Button>
             </motion.div>
