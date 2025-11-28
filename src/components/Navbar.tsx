@@ -10,7 +10,7 @@ import {
 import { useRegion, REGIONS, Region } from '@/contexts/RegionContext';
 import { useI18n } from '@/contexts/I18nContext';
 import { supabase } from '@/integrations/supabase/client';
-import logo from '@/assets/logo.jpg';
+import logo from '@/assets/gorilla-logo.png';
 import { useEffect, useState } from 'react';
 import { MobileMenu } from './MobileMenu';
 
