@@ -49,8 +49,8 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-lg overflow-hidden bg-primary/10 group-hover:bg-primary/20 transition-all flex items-center justify-center">
-              <img src={logo} alt="SecureX Logo" className="w-8 h-8 object-contain" />
+            <div className="w-10 h-10 rounded-2xl overflow-hidden bg-primary/10 group-hover:bg-primary/20 transition-all flex items-center justify-center">
+              <img src={logo} alt="SecureX Logo" className="w-full h-full object-cover rounded-2xl" />
             </div>
             <span className="text-xl font-bold glow-text">SecureX</span>
           </Link>
