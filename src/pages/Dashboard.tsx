@@ -479,14 +479,16 @@ export default function Dashboard() {
         >
           <div className="glass-hover p-8 rounded-2xl">
             <Tabs defaultValue="url" className="w-full">
-              <TabsList className="w-full mb-6 flex md:grid md:grid-cols-3 overflow-x-auto scrollbar-hide">
-                <TabsTrigger value="url" className="whitespace-nowrap flex-1 md:flex-none">URL do Site</TabsTrigger>
-                <TabsTrigger value="file" className="whitespace-nowrap flex-1 md:flex-none">Upload de Arquivo</TabsTrigger>
-                <TabsTrigger value="github" className="whitespace-nowrap flex-1 md:flex-none">
-                  <Github className="w-4 h-4 mr-2" />
-                  GitHub
-                </TabsTrigger>
-              </TabsList>
+              <div className="w-full overflow-x-auto scrollbar-hide mb-6">
+                <TabsList className="inline-flex min-w-full md:grid md:grid-cols-3 md:w-full">
+                  <TabsTrigger value="url" className="whitespace-nowrap flex-1 md:flex-none">URL do Site</TabsTrigger>
+                  <TabsTrigger value="file" className="whitespace-nowrap flex-1 md:flex-none">Upload de Arquivo</TabsTrigger>
+                  <TabsTrigger value="github" className="whitespace-nowrap flex-1 md:flex-none">
+                    <Github className="w-4 h-4 mr-2" />
+                    GitHub
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               <TabsContent value="url" className="space-y-4">
                 <div className="space-y-2">
