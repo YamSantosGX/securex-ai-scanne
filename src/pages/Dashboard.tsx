@@ -14,13 +14,25 @@ import {
   GitBranch,
   TrendingUp,
   Activity,
-  Filter
+  Filter,
+  FileText,
+  Download,
+  CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
@@ -61,6 +73,19 @@ type Scan = {
   created_at: string;
 };
 
+type Invoice = {
+  id: string;
+  number: string | null;
+  amount: number;
+  currency: string;
+  status: string;
+  created: number;
+  invoice_pdf: string | null;
+  hosted_invoice_url: string | null;
+  period_start: number;
+  period_end: number;
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [isScanning, setIsScanning] = useState(false);
@@ -76,6 +101,8 @@ export default function Dashboard() {
   const [pendingScanData, setPendingScanData] = useState<{ url?: string; file?: File; githubUrl?: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
 
   const MAX_FREE_SCANS = 5;
   const MAX_FILE_SIZE_FREE = 50 * 1024 * 1024; // 50MB
@@ -84,6 +111,7 @@ export default function Dashboard() {
   useEffect(() => {
     checkAuthAndSubscription();
     loadScans();
+    loadInvoices();
     requestNotificationPermission();
 
     // Set up realtime subscription for scan updates
@@ -185,6 +213,7 @@ export default function Dashboard() {
 
       if (profile?.subscription_status === 'active') {
         setIsSubscribed(true);
+        loadInvoices();
       }
       
       setScansThisMonth(profile?.scans_this_month || 0);
@@ -233,6 +262,22 @@ export default function Dashboard() {
       setScans((data as unknown as Scan[]) || []);
     } catch (error) {
       console.error('Error loading scans:', error);
+    }
+  };
+
+  const loadInvoices = async () => {
+    if (!isSubscribed) return;
+    
+    setLoadingInvoices(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-invoices');
+
+      if (error) throw error;
+      setInvoices(data?.invoices || []);
+    } catch (error) {
+      console.error('Error loading invoices:', error);
+    } finally {
+      setLoadingInvoices(false);
     }
   };
 
@@ -408,11 +453,26 @@ export default function Dashboard() {
     );
   }
 
+  const getInvoiceStatus = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Pago</Badge>;
+      case 'open':
+        return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Aberto</Badge>;
+      case 'void':
+        return <Badge className="bg-muted text-muted-foreground border-border">Cancelado</Badge>;
+      case 'uncollectible':
+        return <Badge className="bg-red-500/10 text-red-500 border-red-500/20">Não Cobrável</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <Navbar isAuthenticated />
       
-      <main className="container mx-auto px-4 pt-24 pb-12">
+      <main className="container mx-auto px-4 pt-24 pb-12 max-w-7xl">
         {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -672,6 +732,105 @@ export default function Dashboard() {
             </div>
           )}
         </motion.div>
+
+        {/* Invoices Section - Only for PRO users */}
+        {isSubscribed && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="max-w-5xl mx-auto mt-12"
+          >
+            <Card className="glass-hover">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-primary" />
+                  Histórico de Faturas e Pagamentos
+                </CardTitle>
+                <CardDescription>
+                  Visualize e gerencie suas transações da assinatura PRO
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingInvoices ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : invoices.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+                    <p className="text-muted-foreground">Nenhuma fatura encontrada</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Número</TableHead>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Período</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {invoices.map((invoice) => (
+                          <TableRow key={invoice.id}>
+                            <TableCell className="font-medium">
+                              {invoice.number || invoice.id.substring(0, 8)}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(invoice.created * 1000).toLocaleDateString('pt-BR')}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {new Date(invoice.period_start * 1000).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
+                            </TableCell>
+                            <TableCell>
+                              {new Intl.NumberFormat('pt-BR', {
+                                style: 'currency',
+                                currency: invoice.currency === 'USD' ? 'USD' : 'BRL',
+                              }).format(invoice.amount)}
+                            </TableCell>
+                            <TableCell>
+                              {getInvoiceStatus(invoice.status)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex gap-2 justify-end">
+                                {invoice.invoice_pdf && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => window.open(invoice.invoice_pdf!, '_blank')}
+                                    className="btn-zoom"
+                                  >
+                                    <Download className="w-4 h-4 mr-1" />
+                                    PDF
+                                  </Button>
+                                )}
+                                {invoice.hosted_invoice_url && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => window.open(invoice.hosted_invoice_url!, '_blank')}
+                                    className="btn-zoom"
+                                  >
+                                    <FileText className="w-4 h-4 mr-1" />
+                                    Ver
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
       </main>
 
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
