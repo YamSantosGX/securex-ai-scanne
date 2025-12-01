@@ -434,11 +434,6 @@ export default function Dashboard() {
           <p className="text-muted-foreground text-lg">
             Escaneie seus arquivos e sites com IA avançada
           </p>
-          {!isSubscribed && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Scans este mês: {scansThisMonth}/{MAX_FREE_SCANS}
-            </p>
-          )}
         </motion.div>
 
         {/* Stats Cards */}
