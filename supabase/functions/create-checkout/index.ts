@@ -58,12 +58,16 @@ serve(async (req) => {
       'http://localhost:8080',
     ];
 
+    // Get the origin from the request to allow same-origin redirects
+    const requestOrigin = req.headers.get('origin') || '';
+
     try {
       const url = new URL(returnUrl);
       const isLovableApp = url.hostname.endsWith('.lovable.app');
       const isAllowedOrigin = allowedOrigins.includes(url.origin);
+      const isSameOrigin = requestOrigin && url.origin === requestOrigin;
       
-      if (!isAllowedOrigin && !isLovableApp) {
+      if (!isAllowedOrigin && !isLovableApp && !isSameOrigin) {
         return new Response(
           JSON.stringify({ error: 'Invalid returnUrl' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
