@@ -688,25 +688,31 @@ export default function Dashboard() {
           ) : (
             <div className="space-y-4">
               {filteredScans.map((scan) => (
-                <div key={scan.id} className="glass-hover p-6 rounded-xl">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      {getStatusIcon(scan.status, scan.severity)}
-                      <div>
-                        <h3 className="font-semibold">{scan.target}</h3>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                          <Clock className="w-4 h-4" />
-                          {new Date(scan.created_at).toLocaleString('pt-BR')}
+                <div key={scan.id} className="glass-hover p-4 sm:p-6 rounded-xl">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between">
+                    <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                      <div className="flex-shrink-0 mt-1 sm:mt-0">
+                        {getStatusIcon(scan.status, scan.severity)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-sm sm:text-base truncate" title={scan.target}>
+                          {scan.target}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mt-1">
+                          <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                          <span className="truncate">
+                            {new Date(scan.created_at).toLocaleString('pt-BR')}
+                          </span>
                         </div>
                         {scan.vulnerabilities_count > 0 && scan.status === 'completed' && (
-                          <p className="text-sm text-red-500 mt-1">
+                          <p className="text-xs sm:text-sm text-red-500 mt-1">
                             {scan.vulnerabilities_count} vulnerabilidade{scan.vulnerabilities_count > 1 ? 's' : ''} detectada{scan.vulnerabilities_count > 1 ? 's' : ''}
                           </p>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span className={`px-3 py-1 rounded-full text-sm ${
+                    <div className="flex items-center gap-2 sm:gap-4 justify-between sm:justify-end flex-shrink-0">
+                      <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm whitespace-nowrap ${
                         scan.status === 'completed' && scan.severity === 'safe' ? 'bg-green-500/10 text-green-500' :
                         scan.status === 'completed' && scan.severity === 'warning' ? 'bg-yellow-500/10 text-yellow-500' :
                         scan.status === 'completed' && scan.severity === 'danger' ? 'bg-red-500/10 text-red-500' :
@@ -719,7 +725,7 @@ export default function Dashboard() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="btn-zoom"
+                          className="btn-zoom text-xs sm:text-sm"
                           onClick={() => navigate(`/scan/${scan.id}`)}
                         >
                           Ver Relatório
