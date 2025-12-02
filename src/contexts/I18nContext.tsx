@@ -45,7 +45,7 @@ const translations: Record<string, Record<string, string>> = {
     // Plans
     'plan.free.name': 'Free',
     'plan.free.description': 'Para começar',
-    'plan.free.feature1': '3 scans por mês',
+    'plan.free.feature1': 'Histórico de 30 dias',
     'plan.free.feature2': '5 análises por mês',
     'plan.free.feature3': 'Limite de arquivo: 50MB',
     'plan.free.feature4': 'Suporte por email',
@@ -198,7 +198,7 @@ const translations: Record<string, Record<string, string>> = {
     // Plans
     'plan.free.name': 'Free',
     'plan.free.description': 'Get started',
-    'plan.free.feature1': '3 scans per month',
+    'plan.free.feature1': '30-day history',
     'plan.free.feature2': '5 analyses per month',
     'plan.free.feature3': 'File limit: 50MB',
     'plan.free.feature4': 'Email support',
@@ -351,7 +351,7 @@ const translations: Record<string, Record<string, string>> = {
     // Plans
     'plan.free.name': 'Kostenlos',
     'plan.free.description': 'Erste Schritte',
-    'plan.free.feature1': '3 Scans pro Monat',
+    'plan.free.feature1': '30-Tage-Historie',
     'plan.free.feature2': '5 Analysen pro Monat',
     'plan.free.feature3': 'Dateilimit: 50MB',
     'plan.free.feature4': 'E-Mail-Support',
@@ -504,7 +504,7 @@ const translations: Record<string, Record<string, string>> = {
     // Plans
     'plan.free.name': 'Gratuit',
     'plan.free.description': 'Pour commencer',
-    'plan.free.feature1': '3 scans par mois',
+    'plan.free.feature1': 'Historique de 30 jours',
     'plan.free.feature2': '5 analyses par mois',
     'plan.free.feature3': 'Limite de fichier: 50Mo',
     'plan.free.feature4': 'Support par email',
@@ -657,7 +657,7 @@ const translations: Record<string, Record<string, string>> = {
     // Plans
     'plan.free.name': 'Gratis',
     'plan.free.description': 'Para empezar',
-    'plan.free.feature1': '3 escaneos por mes',
+    'plan.free.feature1': 'Historial de 30 días',
     'plan.free.feature2': '5 análisis por mes',
     'plan.free.feature3': 'Límite de archivo: 50MB',
     'plan.free.feature4': 'Soporte por email',
@@ -810,7 +810,7 @@ const translations: Record<string, Record<string, string>> = {
     // Plans
     'plan.free.name': 'Gratuito',
     'plan.free.description': 'Per iniziare',
-    'plan.free.feature1': '3 scansioni al mese',
+    'plan.free.feature1': 'Storico di 30 giorni',
     'plan.free.feature2': '5 analisi al mese',
     'plan.free.feature3': 'Limite file: 50MB',
     'plan.free.feature4': 'Supporto via email',
