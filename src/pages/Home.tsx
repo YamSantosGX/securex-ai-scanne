@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, ArrowRight, Scan, Bell, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,10 +8,31 @@ import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/contexts/I18nContext';
 import PoweredByFooter from '@/components/PoweredByFooter';
 import discordIcon from '@/assets/discord-icon.png';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Home() {
   const navigate = useNavigate();
   const { t } = useI18n();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    checkAuth();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        setIsAuthenticated(true);
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const checkAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setIsAuthenticated(!!user);
+  };
 
   const features = [
     {
@@ -90,23 +112,46 @@ export default function Home() {
               transition={{ delay: 0.4, duration: 0.8 }}
               className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16 px-4"
             >
-              <Button
-                size="lg"
-                onClick={() => navigate('/auth')}
-                className="btn-glow btn-zoom bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-5 text-base w-full sm:w-auto"
-              >
-                {t('home.cta.start')}
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
+              {isAuthenticated ? (
+                <>
+                  <Button
+                    size="lg"
+                    onClick={() => navigate('/dashboard')}
+                    className="btn-glow btn-zoom bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-5 text-base w-full sm:w-auto"
+                  >
+                    {t('nav.dashboard')}
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
 
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => navigate('/pricing')}
-                className="px-8 py-5 text-base glass-hover btn-zoom w-full sm:w-auto"
-              >
-                {t('home.cta.plans')}
-              </Button>
+                  <Button
+                    size="lg"
+                    onClick={() => navigate('/pricing')}
+                    className="btn-glow btn-zoom bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-8 py-5 text-base w-full sm:w-auto ring-2 ring-primary/50"
+                  >
+                    {t('home.cta.plans')}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    size="lg"
+                    onClick={() => navigate('/auth')}
+                    className="btn-glow btn-zoom bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-5 text-base w-full sm:w-auto"
+                  >
+                    {t('home.cta.start')}
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => navigate('/pricing')}
+                    className="px-8 py-5 text-base glass-hover btn-zoom w-full sm:w-auto"
+                  >
+                    {t('home.cta.plans')}
+                  </Button>
+                </>
+              )}
 
               <Button
                 size="lg"
