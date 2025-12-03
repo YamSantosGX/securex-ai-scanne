@@ -17,7 +17,8 @@ import {
   Filter,
   FileText,
   Download,
-  CreditCard
+  CreditCard,
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,11 +51,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
+import { useI18n } from '@/contexts/I18nContext';
 
 // URL validation schema
 const urlSchema = z.string()
@@ -88,6 +98,7 @@ type Invoice = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { t, language } = useI18n();
   const [isScanning, setIsScanning] = useState(false);
   const [url, setUrl] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -98,6 +109,7 @@ export default function Dashboard() {
   const [scansThisMonth, setScansThisMonth] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showProDialog, setShowProDialog] = useState(false);
   const [pendingScanData, setPendingScanData] = useState<{ url?: string; file?: File; githubUrl?: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
@@ -107,6 +119,17 @@ export default function Dashboard() {
   const MAX_FREE_SCANS = 5;
   const MAX_FILE_SIZE_FREE = 50 * 1024 * 1024; // 50MB
   const MAX_FILE_SIZE_PRO = 600 * 1024 * 1024; // 600MB
+
+  const getLocale = () => {
+    switch (language) {
+      case 'en': return 'en-US';
+      case 'de': return 'de-DE';
+      case 'fr': return 'fr-FR';
+      case 'es': return 'es-ES';
+      case 'it': return 'it-IT';
+      default: return 'pt-BR';
+    }
+  };
 
   useEffect(() => {
     checkAuthAndSubscription();
@@ -137,35 +160,25 @@ export default function Dashboard() {
               const vulnCount = newScan.vulnerabilities_count;
               
               if (severity === 'danger' && vulnCount > 0) {
-                const message = `${vulnCount} vulnerabilidade${vulnCount > 1 ? 's críticas' : ' crítica'} detectada${vulnCount > 1 ? 's' : ''}!`;
-                toast.error(
-                  `Scan concluído: ${message}`,
-                  {
-                    description: 'Clique no relatório para ver os detalhes.',
-                    duration: 5000,
-                  }
-                );
-                // Send browser notification for critical vulnerabilities
+                const message = `${vulnCount} ${t('dashboard.vulnerabilities_detected')}!`;
+                toast.error(message, {
+                  description: t('dashboard.view_report'),
+                  duration: 5000,
+                });
                 sendBrowserNotification(
-                  '🔴 Alerta de Segurança Crítico',
-                  message + ' Verifique o relatório imediatamente.'
+                  '🔴 ' + t('dashboard.status_danger'),
+                  message
                 );
               } else if (severity === 'warning' && vulnCount > 0) {
                 toast.warning(
-                  `Scan concluído: ${vulnCount} problema${vulnCount > 1 ? 's' : ''} ${vulnCount > 1 ? 'encontrados' : 'encontrado'}`,
+                  `${vulnCount} ${t('dashboard.vulnerabilities_detected')}`,
                   {
-                    description: 'Verifique o relatório para mais informações.',
+                    description: t('dashboard.view_report'),
                     duration: 5000,
                   }
                 );
               } else {
-                toast.success(
-                  'Scan concluído com sucesso!',
-                  {
-                    description: 'Nenhuma vulnerabilidade detectada.',
-                    duration: 3000,
-                  }
-                );
+                toast.success(t('dashboard.status_safe'), { duration: 3000 });
               }
             }
           }
@@ -176,7 +189,7 @@ export default function Dashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [navigate]);
+  }, [navigate, t]);
 
   useEffect(() => {
     applyFilters();
@@ -229,7 +242,7 @@ export default function Dashboard() {
       try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-          toast.success('Notificações ativadas! Você será alertado sobre vulnerabilidades críticas.');
+          toast.success(t('common.success'));
         }
       } catch (error) {
         console.error('Error requesting notification permission:', error);
@@ -281,9 +294,17 @@ export default function Dashboard() {
     }
   };
 
+  const handleGithubTabClick = () => {
+    if (!isSubscribed) {
+      setShowProDialog(true);
+      return false;
+    }
+    return true;
+  };
+
   const handleScanRequest = () => {
-    if (!url && !file) {
-      toast.error('Por favor, forneça uma URL ou arquivo para escanear');
+    if (!url && !file && !githubUrl) {
+      toast.error(t('common.error'));
       return;
     }
 
@@ -305,29 +326,33 @@ export default function Dashboard() {
       const maxSizeMB = maxSize / (1024 * 1024);
       
       if (file.size > maxSize) {
-        toast.error(`Arquivo muito grande. Tamanho máximo: ${maxSizeMB}MB`);
+        toast.error(`${t('dashboard.file_max_size')}: ${maxSizeMB}MB`);
         return;
       }
 
       const allowedExtensions = /\.(js|ts|jsx|tsx|py|html|css|json|txt|php|rb|java|go|rs|c|cpp|cs|yml|yaml|xml|toml|ini|env|tf|dockerfile|kt|swift|sh|bash|ps1|bat|sql|md)$/i;
 
       if (!file.name.match(allowedExtensions)) {
-        toast.error('Tipo de arquivo não suportado. Use arquivos de código-fonte, configuração ou scripts.');
+        toast.error(t('common.error'));
         return;
       }
     }
 
     // Validate GitHub URL if provided
     if (githubUrl) {
+      if (!isSubscribed) {
+        setShowProDialog(true);
+        return;
+      }
       if (!githubUrl.match(/^https:\/\/github\.com\/[\w-]+\/[\w-]+/)) {
-        toast.error('URL do GitHub inválida. Use o formato: https://github.com/usuario/repositorio');
+        toast.error(t('common.error'));
         return;
       }
     }
 
     // Check scan limits for free users
     if (!isSubscribed && scansThisMonth >= MAX_FREE_SCANS) {
-      toast.error(`Limite de ${MAX_FREE_SCANS} scans gratuitos por mês atingido. Faça upgrade para continuar.`);
+      toast.error(`${t('dashboard.confirm_scan_usage').replace('{max}', String(MAX_FREE_SCANS))}`);
       navigate('/pricing');
       return;
     }
@@ -341,7 +366,7 @@ export default function Dashboard() {
 
     setShowConfirmDialog(false);
     setIsScanning(true);
-    toast.info('Iniciando análise de segurança com IA...');
+    toast.info(t('dashboard.scanning'));
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -396,10 +421,10 @@ export default function Dashboard() {
       setFile(null);
       setGithubUrl('');
       setPendingScanData(null);
-      toast.success('Análise de segurança iniciada! Aguarde a conclusão...');
+      toast.success(t('dashboard.start_scan'));
     } catch (error) {
       console.error('Error during scan:', error);
-      toast.error('Erro ao realizar scan. Tente novamente.');
+      toast.error(t('common.error'));
     } finally {
       setIsScanning(false);
     }
@@ -427,21 +452,21 @@ export default function Dashboard() {
 
   const getStatusText = (status: string, severity: string | null) => {
     if (status === 'processing' || status === 'pending') {
-      return 'Analisando...';
+      return t('dashboard.status_analyzing');
     }
     if (status === 'failed') {
-      return 'Falhou';
+      return t('dashboard.status_failed');
     }
     
     switch (severity) {
       case 'safe':
-        return 'Seguro';
+        return t('dashboard.status_safe');
       case 'warning':
-        return 'Atenção';
+        return t('dashboard.status_warning');
       case 'danger':
-        return 'Risco Alto';
+        return t('dashboard.status_danger');
       default:
-        return 'Processando';
+        return t('dashboard.status_processing');
     }
   };
 
@@ -456,13 +481,13 @@ export default function Dashboard() {
   const getInvoiceStatus = (status: string) => {
     switch (status) {
       case 'paid':
-        return <Badge className="bg-green-500/10 text-green-500 border-green-500/20">Pago</Badge>;
+        return <Badge className="bg-green-500/10 text-green-500 border-green-500/20">{t('dashboard.invoice_paid')}</Badge>;
       case 'open':
-        return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Aberto</Badge>;
+        return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">{t('dashboard.invoice_open')}</Badge>;
       case 'void':
-        return <Badge className="bg-muted text-muted-foreground border-border">Cancelado</Badge>;
+        return <Badge className="bg-muted text-muted-foreground border-border">{t('dashboard.invoice_void')}</Badge>;
       case 'uncollectible':
-        return <Badge className="bg-red-500/10 text-red-500 border-red-500/20">Não Cobrável</Badge>;
+        return <Badge className="bg-red-500/10 text-red-500 border-red-500/20">{t('dashboard.invoice_uncollectible')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -480,9 +505,9 @@ export default function Dashboard() {
           transition={{ duration: 0.8 }}
           className="text-center mb-12"
         >
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <h1 className="text-4xl md:text-5xl font-bold">
-              Central de <span className="glow-text">Análise de Segurança</span>
+          <div className="flex items-center justify-center gap-3 mb-4 flex-wrap">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
+              {t('dashboard.title')} <span className="glow-text">{t('dashboard.title_highlight')}</span>
             </h1>
             {isSubscribed && (
               <Badge className="bg-primary text-primary-foreground gap-1">
@@ -491,8 +516,8 @@ export default function Dashboard() {
               </Badge>
             )}
           </div>
-          <p className="text-muted-foreground text-lg">
-            Escaneie seus arquivos e sites com IA avançada
+          <p className="text-muted-foreground text-base sm:text-lg">
+            {t('dashboard.subtitle')}
           </p>
         </motion.div>
 
@@ -501,32 +526,32 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05, duration: 0.8 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12 max-w-3xl mx-auto"
+          className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12 max-w-3xl mx-auto"
         >
-          <div className="glass-hover p-6 rounded-xl text-center">
+          <div className="glass-hover p-4 sm:p-6 rounded-xl text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
               <Activity className="w-5 h-5 text-primary" />
-              <div className="text-3xl font-bold">{scans.length}</div>
+              <div className="text-2xl sm:text-3xl font-bold">{scans.length}</div>
             </div>
-            <div className="text-sm text-muted-foreground">Total de Scans</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">{t('dashboard.total_scans')}</div>
           </div>
-          <div className="glass-hover p-6 rounded-xl text-center">
+          <div className="glass-hover p-4 sm:p-6 rounded-xl text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
               <AlertTriangle className="w-5 h-5 text-orange-500" />
-              <div className="text-3xl font-bold">
+              <div className="text-2xl sm:text-3xl font-bold">
                 {scans.reduce((acc, scan) => acc + (scan.vulnerabilities_count || 0), 0)}
               </div>
             </div>
-            <div className="text-sm text-muted-foreground">Vulnerabilidades</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">{t('dashboard.vulnerabilities')}</div>
           </div>
-          <div className="glass-hover p-6 rounded-xl text-center">
+          <div className="glass-hover p-4 sm:p-6 rounded-xl text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
               <TrendingUp className="w-5 h-5 text-green-500" />
-              <div className="text-3xl font-bold">
+              <div className="text-2xl sm:text-3xl font-bold">
                 {scans.filter(s => s.severity === 'safe').length}/{scans.length}
               </div>
             </div>
-            <div className="text-sm text-muted-foreground">Seguros</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">{t('dashboard.safe')}</div>
           </div>
         </motion.div>
 
@@ -537,28 +562,38 @@ export default function Dashboard() {
           transition={{ delay: 0.1, duration: 0.8 }}
           className="max-w-3xl mx-auto mb-12"
         >
-          <div className="glass-hover p-8 rounded-2xl">
+          <div className="glass-hover p-4 sm:p-8 rounded-2xl">
             <Tabs defaultValue="url" className="w-full">
               <div className="w-full overflow-x-auto scrollbar-hide mb-6">
                 <TabsList className="inline-flex min-w-full md:grid md:grid-cols-3 md:w-full">
-                  <TabsTrigger value="url" className="whitespace-nowrap flex-1 md:flex-none">URL do Site</TabsTrigger>
-                  <TabsTrigger value="file" className="whitespace-nowrap flex-1 md:flex-none">Upload de Arquivo</TabsTrigger>
-                  <TabsTrigger value="github" className="whitespace-nowrap flex-1 md:flex-none">
+                  <TabsTrigger value="url" className="whitespace-nowrap flex-1 md:flex-none">{t('dashboard.url_tab')}</TabsTrigger>
+                  <TabsTrigger value="file" className="whitespace-nowrap flex-1 md:flex-none">{t('dashboard.file_tab')}</TabsTrigger>
+                  <TabsTrigger 
+                    value="github" 
+                    className="whitespace-nowrap flex-1 md:flex-none"
+                    onClick={(e) => {
+                      if (!isSubscribed) {
+                        e.preventDefault();
+                        setShowProDialog(true);
+                      }
+                    }}
+                  >
                     <Github className="w-4 h-4 mr-2" />
-                    GitHub
+                    {t('dashboard.github_tab')}
+                    {!isSubscribed && <Lock className="w-3 h-3 ml-1" />}
                   </TabsTrigger>
                 </TabsList>
               </div>
 
               <TabsContent value="url" className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="url">URL do Site</Label>
+                  <Label htmlFor="url">{t('dashboard.url_label')}</Label>
                   <div className="relative">
                     <LinkIcon className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
                     <Input
                       id="url"
                       type="url"
-                      placeholder="https://seusite.com"
+                      placeholder={t('dashboard.url_placeholder')}
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       className="pl-10 glass"
@@ -570,9 +605,9 @@ export default function Dashboard() {
 
               <TabsContent value="file" className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="file">Arquivo de Código-Fonte</Label>
-                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-all duration-500 cursor-pointer glass">
-                    <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <Label htmlFor="file">{t('dashboard.file_label')}</Label>
+                  <div className="border-2 border-dashed border-border rounded-lg p-4 sm:p-8 text-center hover:border-primary/50 transition-all duration-500 cursor-pointer glass">
+                    <Upload className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-4 text-muted-foreground" />
                     <Input
                       id="file"
                       type="file"
@@ -583,39 +618,52 @@ export default function Dashboard() {
                     />
                     <label
                       htmlFor="file"
-                      className="cursor-pointer text-primary hover:text-primary/80 transition-colors"
+                      className="cursor-pointer text-primary hover:text-primary/80 transition-colors text-sm sm:text-base"
                     >
-                      {file ? file.name : 'Clique para selecionar um arquivo'}
+                      {file ? file.name : t('dashboard.file_select')}
                     </label>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Tamanho máximo: {isSubscribed ? '600MB' : '50MB'}
+                      {t('dashboard.file_max_size')}: {isSubscribed ? '600MB' : '50MB'}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Suportados: JavaScript, TypeScript, Python, Java, PHP, Ruby, Go, Rust, C/C++, C#, YAML, XML, SQL, Shell, e mais
+                    <p className="text-xs text-muted-foreground mt-1 hidden sm:block">
+                      {t('dashboard.file_supported')}
                     </p>
                   </div>
                 </div>
               </TabsContent>
 
               <TabsContent value="github" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="github">URL do Repositório GitHub</Label>
-                  <div className="relative">
-                    <GitBranch className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      id="github"
-                      type="url"
-                      placeholder="https://github.com/usuario/repositorio"
-                      value={githubUrl}
-                      onChange={(e) => setGithubUrl(e.target.value)}
-                      className="pl-10 glass"
-                      disabled={isScanning}
-                    />
+                {isSubscribed ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="github">{t('dashboard.github_label')}</Label>
+                    <div className="relative">
+                      <GitBranch className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        id="github"
+                        type="url"
+                        placeholder={t('dashboard.github_placeholder')}
+                        value={githubUrl}
+                        onChange={(e) => setGithubUrl(e.target.value)}
+                        className="pl-10 glass"
+                        disabled={isScanning}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {t('dashboard.github_info')}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Analisaremos os arquivos principais do repositório
-                  </p>
-                </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Lock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">{t('dashboard.github_pro_only')}</p>
+                    <Button 
+                      className="mt-4 btn-glow" 
+                      onClick={() => navigate('/pricing')}
+                    >
+                      {t('home.cta.plans')}
+                    </Button>
+                  </div>
+                )}
               </TabsContent>
 
               <Button
@@ -626,12 +674,12 @@ export default function Dashboard() {
                 {isScanning ? (
                   <>
                     <Clock className="w-4 h-4 mr-2 animate-spin" />
-                    Analisando...
+                    {t('dashboard.scanning')}
                   </>
                 ) : (
                   <>
                     <Shield className="w-4 h-4 mr-2" />
-                    Iniciar Análise de Segurança
+                    {t('dashboard.start_scan')}
                   </>
                 )}
               </Button>
@@ -645,44 +693,44 @@ export default function Dashboard() {
           transition={{ delay: 0.2, duration: 0.8 }}
           className="max-w-5xl mx-auto"
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Histórico de Análises</h2>
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+            <h2 className="text-xl sm:text-2xl font-bold">{t('dashboard.history_title')}</h2>
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px] glass">
+                <SelectTrigger className="w-full sm:w-[140px] glass">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent className="glass">
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="completed">Completo</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="processing">Processando</SelectItem>
-                  <SelectItem value="failed">Falhou</SelectItem>
+                  <SelectItem value="all">{t('dashboard.filter_all')}</SelectItem>
+                  <SelectItem value="completed">{t('dashboard.filter_completed')}</SelectItem>
+                  <SelectItem value="pending">{t('dashboard.filter_pending')}</SelectItem>
+                  <SelectItem value="processing">{t('dashboard.filter_processing')}</SelectItem>
+                  <SelectItem value="failed">{t('dashboard.filter_failed')}</SelectItem>
                 </SelectContent>
               </Select>
               
               <Select value={severityFilter} onValueChange={setSeverityFilter}>
-                <SelectTrigger className="w-[140px] glass">
+                <SelectTrigger className="w-full sm:w-[140px] glass">
                   <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Severidade" />
+                  <SelectValue placeholder="Severity" />
                 </SelectTrigger>
                 <SelectContent className="glass">
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="safe">Seguro</SelectItem>
-                  <SelectItem value="warning">Atenção</SelectItem>
-                  <SelectItem value="danger">Risco</SelectItem>
+                  <SelectItem value="all">{t('dashboard.filter_all')}</SelectItem>
+                  <SelectItem value="safe">{t('dashboard.filter_safe')}</SelectItem>
+                  <SelectItem value="warning">{t('dashboard.filter_warning')}</SelectItem>
+                  <SelectItem value="danger">{t('dashboard.filter_danger')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           
           {filteredScans.length === 0 ? (
-            <div className="glass-hover p-12 rounded-xl text-center">
-              <Shield className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-xl font-semibold mb-2">Nenhuma análise encontrada</h3>
-              <p className="text-muted-foreground">
-                {scans.length === 0 ? 'Comece fazendo sua primeira análise de segurança' : 'Tente ajustar os filtros'}
+            <div className="glass-hover p-8 sm:p-12 rounded-xl text-center">
+              <Shield className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">{t('dashboard.no_scans')}</h3>
+              <p className="text-muted-foreground text-sm sm:text-base">
+                {scans.length === 0 ? t('dashboard.no_scans_start') : t('dashboard.no_scans_filter')}
               </p>
             </div>
           ) : (
@@ -701,12 +749,12 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mt-1">
                           <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                           <span className="truncate">
-                            {new Date(scan.created_at).toLocaleString('pt-BR')}
+                            {new Date(scan.created_at).toLocaleString(getLocale())}
                           </span>
                         </div>
                         {scan.vulnerabilities_count > 0 && scan.status === 'completed' && (
                           <p className="text-xs sm:text-sm text-red-500 mt-1">
-                            {scan.vulnerabilities_count} vulnerabilidade{scan.vulnerabilities_count > 1 ? 's' : ''} detectada{scan.vulnerabilities_count > 1 ? 's' : ''}
+                            {scan.vulnerabilities_count} {t('dashboard.vulnerabilities_detected')}
                           </p>
                         )}
                       </div>
@@ -728,7 +776,7 @@ export default function Dashboard() {
                           className="btn-zoom text-xs sm:text-sm"
                           onClick={() => navigate(`/scan/${scan.id}`)}
                         >
-                          Ver Relatório
+                          {t('dashboard.view_report')}
                         </Button>
                       )}
                     </div>
@@ -749,12 +797,12 @@ export default function Dashboard() {
           >
             <Card className="glass-hover">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                   <CreditCard className="w-5 h-5 text-primary" />
-                  Histórico de Faturas e Pagamentos
+                  {t('dashboard.invoices_title')}
                 </CardTitle>
-                <CardDescription>
-                  Visualize e gerencie suas transações da assinatura PRO
+                <CardDescription className="text-sm">
+                  {t('dashboard.invoices_description')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -765,35 +813,35 @@ export default function Dashboard() {
                 ) : invoices.length === 0 ? (
                   <div className="text-center py-8">
                     <FileText className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-                    <p className="text-muted-foreground">Nenhuma fatura encontrada</p>
+                    <p className="text-muted-foreground">{t('dashboard.invoices_empty')}</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Número</TableHead>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Período</TableHead>
-                          <TableHead>Valor</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Ações</TableHead>
+                          <TableHead>{t('dashboard.invoice_number')}</TableHead>
+                          <TableHead>{t('dashboard.invoice_date')}</TableHead>
+                          <TableHead className="hidden sm:table-cell">{t('dashboard.invoice_period')}</TableHead>
+                          <TableHead>{t('dashboard.invoice_amount')}</TableHead>
+                          <TableHead>{t('dashboard.invoice_status')}</TableHead>
+                          <TableHead className="text-right">{t('dashboard.invoice_actions')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {invoices.map((invoice) => (
                           <TableRow key={invoice.id}>
-                            <TableCell className="font-medium">
+                            <TableCell className="font-medium text-xs sm:text-sm">
                               {invoice.number || invoice.id.substring(0, 8)}
                             </TableCell>
-                            <TableCell>
-                              {new Date(invoice.created * 1000).toLocaleDateString('pt-BR')}
+                            <TableCell className="text-xs sm:text-sm">
+                              {new Date(invoice.created * 1000).toLocaleDateString(getLocale())}
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {new Date(invoice.period_start * 1000).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
+                            <TableCell className="text-xs sm:text-sm text-muted-foreground hidden sm:table-cell">
+                              {new Date(invoice.period_start * 1000).toLocaleDateString(getLocale(), { month: 'short', year: 'numeric' })}
                             </TableCell>
-                            <TableCell>
-                              {new Intl.NumberFormat('pt-BR', {
+                            <TableCell className="text-xs sm:text-sm">
+                              {new Intl.NumberFormat(getLocale(), {
                                 style: 'currency',
                                 currency: invoice.currency === 'USD' ? 'USD' : 'BRL',
                               }).format(invoice.amount)}
@@ -808,10 +856,10 @@ export default function Dashboard() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => window.open(invoice.invoice_pdf!, '_blank')}
-                                    className="btn-zoom"
+                                    className="btn-zoom text-xs"
                                   >
-                                    <Download className="w-4 h-4 mr-1" />
-                                    PDF
+                                    <Download className="w-4 h-4 sm:mr-1" />
+                                    <span className="hidden sm:inline">PDF</span>
                                   </Button>
                                 )}
                                 {invoice.hosted_invoice_url && (
@@ -819,10 +867,10 @@ export default function Dashboard() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => window.open(invoice.hosted_invoice_url!, '_blank')}
-                                    className="btn-zoom"
+                                    className="btn-zoom text-xs"
                                   >
-                                    <FileText className="w-4 h-4 mr-1" />
-                                    Ver
+                                    <FileText className="w-4 h-4 sm:mr-1" />
+                                    <span className="hidden sm:inline">{t('dashboard.view_report')}</span>
                                   </Button>
                                 )}
                               </div>
@@ -839,40 +887,63 @@ export default function Dashboard() {
         )}
       </main>
 
+      {/* PRO Required Dialog */}
+      <Dialog open={showProDialog} onOpenChange={setShowProDialog}>
+        <DialogContent className="glass sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="w-5 h-5 text-primary" />
+              {t('plan.pro.name')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('dashboard.github_pro_only')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowProDialog(false)} className="w-full sm:w-auto">
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={() => { setShowProDialog(false); navigate('/pricing'); }} className="btn-glow w-full sm:w-auto">
+              {t('home.cta.plans')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent className="glass">
+        <AlertDialogContent className="glass max-w-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Análise de Segurança</AlertDialogTitle>
+            <AlertDialogTitle>{t('dashboard.confirm_scan_title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Você está prestes a iniciar uma análise completa de segurança em:
+              {t('dashboard.confirm_scan_description')}
               <br />
-              <strong className="text-foreground">
-                {pendingScanData?.file ? pendingScanData.file.name : pendingScanData?.url}
+              <strong className="text-foreground break-all">
+                {pendingScanData?.file ? pendingScanData.file.name : pendingScanData?.githubUrl || pendingScanData?.url}
               </strong>
               <br /><br />
-              A análise incluirá verificação de:
+              {t('dashboard.confirm_scan_includes')}
               <ul className="list-disc list-inside text-sm mt-2">
                 <li>SQL Injection</li>
                 <li>Cross-Site Scripting (XSS)</li>
-                <li>CSRF e outras vulnerabilidades OWASP Top 10</li>
+                <li>CSRF e OWASP Top 10</li>
               </ul>
               <br />
               {!isSubscribed && (
                 <span className="text-yellow-500">
-                  Isso usará 1 de seus {MAX_FREE_SCANS} scans gratuitos mensais.
+                  {t('dashboard.confirm_scan_usage').replace('{max}', String(MAX_FREE_SCANS))}
                   <br />
-                  Scans restantes: {MAX_FREE_SCANS - scansThisMonth - 1}
+                  {t('dashboard.confirm_scan_remaining').replace('{remaining}', String(MAX_FREE_SCANS - scansThisMonth - 1))}
                 </span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="btn-zoom">Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="btn-zoom w-full sm:w-auto">{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleConfirmScan}
-              className="btn-glow btn-zoom bg-primary hover:bg-primary/90"
+              className="btn-glow btn-zoom bg-primary hover:bg-primary/90 w-full sm:w-auto"
             >
-              Confirmar Análise
+              {t('common.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
