@@ -20,6 +20,7 @@ import {
   CreditCard,
   Lock
 } from 'lucide-react';
+import { AdminToggle } from '@/components/AdminToggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -503,7 +504,7 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <div className="flex items-center justify-center gap-3 mb-4 flex-wrap">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
@@ -519,6 +520,23 @@ export default function Dashboard() {
           <p className="text-muted-foreground text-base sm:text-lg">
             {t('dashboard.subtitle')}
           </p>
+        </motion.div>
+
+        {/* Admin Toggle - Only visible for admin users */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.02, duration: 0.8 }}
+          className="max-w-md mx-auto mb-8"
+        >
+          <AdminToggle 
+            isSubscribed={isSubscribed} 
+            onToggle={(newStatus) => {
+              setIsSubscribed(newStatus);
+              // Reload scans to update UI based on new subscription status
+              loadScans();
+            }} 
+          />
         </motion.div>
 
         {/* Stats Cards */}

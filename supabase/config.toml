@@ -8,3 +8,9 @@ verify_jwt = true
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.toggle-admin-pro]
+verify_jwt = true
+
+[functions.get-invoices]
+verify_jwt = true
