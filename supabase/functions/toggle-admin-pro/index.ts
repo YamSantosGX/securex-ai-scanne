@@ -74,7 +74,7 @@ serve(async (req) => {
       .from('profiles')
       .select('subscription_status')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (profileError) {
       console.error('Profile fetch error:', profileError);
@@ -82,6 +82,22 @@ serve(async (req) => {
         JSON.stringify({ error: 'Error fetching profile' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // If profile doesn't exist, create it
+    if (!profile) {
+      console.log('Profile not found, creating one...');
+      const { error: insertError } = await supabaseAdmin
+        .from('profiles')
+        .insert({ user_id: user.id, subscription_status: 'inactive' });
+
+      if (insertError) {
+        console.error('Profile insert error:', insertError);
+        return new Response(
+          JSON.stringify({ error: 'Error creating profile' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Toggle subscription status
