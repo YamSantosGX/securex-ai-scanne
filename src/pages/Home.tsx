@@ -135,7 +135,7 @@ export default function Home() {
                 <>
                   <Button
                     size="lg"
-                    onClick={() => navigate('/auth')}
+                    onClick={() => navigate('/auth?mode=signup')}
                     className="btn-glow btn-zoom bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-5 text-base w-full sm:w-auto"
                   >
                     {t('home.cta.start')}
