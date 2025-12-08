@@ -7,6 +7,7 @@ import { RegionProvider } from "@/contexts/RegionContext";
 import { I18nProvider } from "@/contexts/I18nContext";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import ScanDetails from "./pages/ScanDetails";
 import Pricing from "./pages/Pricing";
@@ -25,6 +26,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/scan/:id" element={<ScanDetails />} />
               <Route path="/pricing" element={<Pricing />} />

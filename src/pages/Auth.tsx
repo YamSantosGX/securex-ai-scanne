@@ -214,16 +214,25 @@ export default function Auth() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-2">
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              className="text-sm text-muted-foreground hover:text-primary transition-colors block w-full"
             >
               {isLogin
                 ? 'Não tem uma conta? Cadastre-se'
                 : 'Já tem uma conta? Faça login'}
             </button>
+            {isLogin && (
+              <button
+                type="button"
+                onClick={() => navigate('/reset-password')}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors block w-full"
+              >
+                Esqueceu sua senha?
+              </button>
+            )}
           </div>
         </div>
 
