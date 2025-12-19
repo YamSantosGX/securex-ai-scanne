@@ -11,6 +11,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import ScanDetails from "./pages/ScanDetails";
 import Pricing from "./pages/Pricing";
+import RedeemCode from "./pages/RedeemCode";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/scan/:id" element={<ScanDetails />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/redeem" element={<RedeemCode />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

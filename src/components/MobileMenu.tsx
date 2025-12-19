@@ -42,6 +42,14 @@ export const MobileMenu = ({ isAuthenticated, onLogout }: MobileMenuProps) => {
                 {t('nav.pricing')}
               </Link>
               
+              <Link
+                to="/redeem"
+                className="text-lg text-foreground/80 hover:text-primary transition-colors flex items-center gap-2"
+                onClick={toggleMenu}
+              >
+                Resgatar Código
+              </Link>
+              
               {isAuthenticated ? (
                 <>
                   <Link

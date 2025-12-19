@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Shield, Crown } from 'lucide-react';
+import { Check, Shield, Crown, Tag, X, Percent, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { useRegion } from '@/contexts/RegionContext';
@@ -17,10 +19,16 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/v1';
+const API_TOKEN = import.meta.env.VITE_API_TOKEN;
+
 export default function Pricing() {
   const [isAnnual, setIsAnnual] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<any>(null);
+  const [checkingPromo, setCheckingPromo] = useState(false);
   const { regionConfig } = useRegion();
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -64,6 +72,85 @@ export default function Pricing() {
     }
   };
 
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+
+    setCheckingPromo(true);
+    try {
+      const response = await fetch(`${API_URL}/codes?code=${promoCode.toUpperCase()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_TOKEN}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+         throw new Error(data.error?.message.replace(/^〔API〕»\s*/, '') || 'Código inválido');
+      }
+
+      if (data.type !== 2) {
+        toast({
+          title: 'Código inválido',
+          description: 'Este código não é um código de desconto.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (data.used) {
+        toast({
+          title: 'Código já utilizado',
+          description: 'Este código já foi resgatado.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      setAppliedPromo(data);
+      toast({
+        title: '✨ Código aplicado!',
+        description: `Desconto de ${
+          data.discount.kind === 1
+            ? `${data.discount.value}%`
+            : formatPrice(data.discount.value)
+        } aplicado com sucesso.`,
+      });
+    } catch (error: any) {
+      console.error('Error applying promo:', error);
+      toast({
+        title: 'Erro ao aplicar código',
+        description: error.message || 'Verifique o código e tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCheckingPromo(false);
+    }
+  };
+
+  const removePromo = () => {
+    setAppliedPromo(null);
+    setPromoCode('');
+    toast({
+      title: 'Código removido',
+      description: 'O desconto foi removido.',
+    });
+  };
+
+  const calculateDiscount = (price: number) => {
+    if (!appliedPromo) return 0;
+
+    if (appliedPromo.discount.kind === 1) {
+      // Porcentagem
+      return (price * appliedPromo.discount.value) / 100;
+    } else {
+      // Valor fixo
+      return appliedPromo.discount.value;
+    }
+  };
+
   const handleSubscribe = async () => {
     setLoading(true);
     try {
@@ -79,18 +166,45 @@ export default function Pricing() {
         return;
       }
 
-      const priceId = isAnnual ? PRICE_IDS.annual : PRICE_IDS.monthly;
-      const returnUrl = window.location.origin;
+      // Se houver código promocional, resgata antes de processar o pagamento
+      if (appliedPromo) {
+        const redeemResponse = await fetch(`${API_URL}/codes/redeem`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${API_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            code: appliedPromo.code,
+            id: user.id,
+          }),
+        });
 
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId, returnUrl },
-      });
+        const data = await redeemResponse.json();
+
+        if (!redeemResponse.ok) {
+          throw new Error(data.error?.message.replace(/^〔API〕»\s*/, '') || 'Erro ao resgatar código');
+        }
+      }
+
+      const priceId = isAnnual
+        ? PRICE_IDS.annual
+        : PRICE_IDS.monthly;
+
+      const { data, error } =
+        await supabase.functions.invoke(
+          'create-checkout',
+          {
+            body: {
+              priceId,
+              returnUrl: window.location.origin,
+            },
+          }
+        );
 
       if (error) throw error;
-
-      if (data?.url) {
-        window.location.href = data.url;
-      }
+      if (data?.url) window.location.href = data.url;
+      
     } catch (error) {
       console.error('Error creating checkout:', error);
       toast({
@@ -261,6 +375,35 @@ export default function Pricing() {
                     </span>
                   )}
                 </div>
+                
+                {/* Mostrar desconto aplicado apenas no plano PRO */}
+                {plan.highlighted && appliedPromo && (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Subtotal:</span>
+                      <span className="line-through text-muted-foreground">
+                        {formatPrice(calculatePrice(plan.price))}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm font-medium text-green-500">
+                      <span className="flex items-center gap-1">
+                        <Tag className="w-3 h-3" />
+                        Desconto:
+                      </span>
+                      <span>
+                        -{formatPrice(calculateDiscount(calculatePrice(plan.price)))}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-lg font-bold pt-2 border-t">
+                      <span>Total:</span>
+                      <span className="glow-text">
+                        {formatPrice(
+                          Math.max(0, calculatePrice(plan.price) - calculateDiscount(calculatePrice(plan.price)))
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {plan.highlighted ? (
@@ -272,13 +415,79 @@ export default function Pricing() {
                     {t('plan.pro.badge')}
                   </Button>
                 ) : (
-                  <Button
-                    className="w-full mb-6 btn-glow bg-primary hover:bg-primary/90"
-                    onClick={handleSubscribe}
-                    disabled={loading}
-                  >
-                    {loading ? t('common.loading') : plan.cta}
-                  </Button>
+                  <>
+                    {/* Seção de Código Promocional */}
+                    {!appliedPromo ? (
+                      <div className="mb-4">
+                        <Card className="p-4 bg-primary/5 border-primary/20">
+                          <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+                            <Tag className="w-4 h-4" />
+                            Tem um código promocional?
+                          </label>
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Digite o código"
+                              value={promoCode}
+                              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                              onKeyDown={(e) => e.key === 'Enter' && handleApplyPromo()}
+                              className="font-mono"
+                              disabled={checkingPromo}
+                            />
+                            <Button
+                              onClick={handleApplyPromo}
+                              disabled={checkingPromo || !promoCode.trim()}
+                              variant="outline"
+                              size="sm"
+                            >
+                              {checkingPromo ? 'Verificando...' : 'Aplicar'}
+                            </Button>
+                          </div>
+                        </Card>
+                      </div>
+                    ) : (
+                      <div className="mb-4">
+                        <Card className="p-4 bg-green-500/10 border-green-500/20">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-full bg-green-500/20">
+                                {appliedPromo.discount.kind === 1 ? (
+                                  <Percent className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <Tag className="w-3.5 h-3.5 text-green-500" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">Código aplicado!</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {appliedPromo.code} • {
+                                    appliedPromo.discount.kind === 1
+                                      ? `${appliedPromo.discount.value}% OFF`
+                                      : `${formatPrice(appliedPromo.discount.value)} OFF`
+                                  }
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              onClick={removePromo}
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </Card>
+                      </div>
+                    )}
+                    
+                    <Button
+                      className="w-full mb-6 btn-glow bg-primary hover:bg-primary/90"
+                      onClick={handleSubscribe}
+                      disabled={loading}
+                    >
+                      {loading ? t('common.loading') : plan.cta}
+                    </Button>
+                  </>
                 )
               ) : (
                 <Button
@@ -306,12 +515,25 @@ export default function Pricing() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-center mb-12"
+          className="text-center mb-12 space-y-4"
         >
           <p className="text-sm text-muted-foreground">
             {t('pricing.payment_info')}{' '}
             <span className="text-primary font-semibold">Stripe</span>
           </p>
+          
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-sm">
+            <Gift className="w-4 h-4" />
+            <span>
+              Tem um código de plano grátis?{' '}
+              <button
+                onClick={() => navigate('/redeem')}
+                className="font-semibold underline hover:text-amber-700 dark:hover:text-amber-300"
+              >
+                Resgatar aqui
+              </button>
+            </span>
+          </div>
         </motion.div>
 
         {/* FAQ */}

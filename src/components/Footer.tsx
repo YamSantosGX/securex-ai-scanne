@@ -40,6 +40,14 @@ export const Footer = () => {
                   Planos
                 </Link>
               </li>
+              <li>
+                <Link
+                  to="/redeem"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Resgatar Código
+                </Link>
+              </li>
             </ul>
           </div>
 

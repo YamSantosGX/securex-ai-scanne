@@ -59,7 +59,7 @@ export const Navbar = ({ isAuthenticated = false }: NavbarProps) => {
           <div className="hidden md:flex items-center gap-6 ml-auto mr-6">
             <Link
               to="/pricing"
-              className={`text-foreground/80 hover:text-primary transition-colors ${userAuthenticated ? 'font-bold text-primary' : ''}`}
+              className="text-foreground/80 hover:text-primary transition-colors"
             >
               {t('nav.pricing')}
             </Link>
