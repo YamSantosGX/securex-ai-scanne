@@ -1,0 +1,76 @@
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+serve(async (req) => {
+  // CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
+  try {
+    const { code } = await req.json()
+
+    if (!code) {
+      return new Response(
+        JSON.stringify({ valid: false, error: 'PROMO_REQUIRED' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // 🔐 API
+    const response = await fetch(
+      `${Deno.env.get('API_URL')}/codes?code=${code}`,
+      {
+        headers: {
+          Authorization: `Bearer ${Deno.env.get('API_TOKEN')}`,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      return new Response(
+        JSON.stringify({ valid: false, error: 'PROMO_INVALID' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const promo = await response.json()
+
+    if (promo.type !== 2) {
+      return new Response(
+        JSON.stringify({ valid: false, error: 'PROMO_NOT_DISCOUNT' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (promo.used) {
+      return new Response(
+        JSON.stringify({ valid: false, error: 'PROMO_ALREADY_USED' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    return new Response(
+      JSON.stringify({
+        valid: true,
+        code: promo.code,
+        discount: {
+          kind: promo.discount.kind,
+          value: promo.discount.value,
+        },
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (error) {
+    console.error('validate-promo error:', error)
+
+    return new Response(
+      JSON.stringify({ valid: false, error: 'INTERNAL_ERROR' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+})
