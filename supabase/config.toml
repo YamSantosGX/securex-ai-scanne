@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.get-invoices]
 verify_jwt = true
+
+[functions.validate-stripe-promo]
+verify_jwt = false
