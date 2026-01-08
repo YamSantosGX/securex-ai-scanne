@@ -119,10 +119,12 @@ serve(async (req) => {
       mode: 'subscription',
       success_url: `${returnUrl}/dashboard?success=true`,
       cancel_url: `${returnUrl}/pricing?canceled=true`,
-      allow_promotion_codes: !code, // Allow manual entry if no code pre-applied
     };
 
     // If promo code provided, find and apply promotion_code from Stripe
+    // IMPORTANT: Cannot use both allow_promotion_codes and discounts together
+    let discountApplied = false;
+    
     if (code) {
       try {
         const promoCodes = await stripe.promotionCodes.list({
@@ -133,6 +135,7 @@ serve(async (req) => {
 
         if (promoCodes.data.length > 0) {
           sessionConfig.discounts = [{ promotion_code: promoCodes.data[0].id }];
+          discountApplied = true;
           console.log('Applied promotion code:', promoCodes.data[0].id);
         } else {
           // Try as coupon code instead
@@ -140,17 +143,21 @@ serve(async (req) => {
             const coupon = await stripe.coupons.retrieve(code.toLowerCase());
             if (coupon && coupon.valid) {
               sessionConfig.discounts = [{ coupon: coupon.id }];
+              discountApplied = true;
               console.log('Applied coupon:', coupon.id);
             }
           } catch (couponError) {
             console.log('Code not found as coupon either, proceeding without discount');
-            sessionConfig.allow_promotion_codes = true;
           }
         }
       } catch (promoError) {
         console.log('Error looking up promo code, proceeding without discount:', promoError);
-        sessionConfig.allow_promotion_codes = true;
       }
+    }
+    
+    // Only allow manual promo code entry if no discount was applied
+    if (!discountApplied) {
+      sessionConfig.allow_promotion_codes = true;
     }
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
