@@ -103,10 +103,10 @@ serve(async (req) => {
       customerId = customer.id;
     }
 
-    console.log('Creating checkout session with:', { priceId, returnUrl, customerId });
+    console.log('Creating checkout session with:', { priceId, returnUrl, customerId, code });
 
-    // Create Stripe Checkout Session with promotion codes enabled
-    const session = await stripe.checkout.sessions.create({
+    // Build checkout session config
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       client_reference_id: user.id,
       payment_method_types: ['card'],
@@ -116,15 +116,44 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      discounts: [
-        {
-          coupon: code ? code.toLowerCase() : undefined,
-        }
-      ],
       mode: 'subscription',
       success_url: `${returnUrl}/dashboard?success=true`,
       cancel_url: `${returnUrl}/pricing?canceled=true`,
-    });
+      allow_promotion_codes: !code, // Allow manual entry if no code pre-applied
+    };
+
+    // If promo code provided, find and apply promotion_code from Stripe
+    if (code) {
+      try {
+        const promoCodes = await stripe.promotionCodes.list({
+          code: code.toUpperCase(),
+          active: true,
+          limit: 1,
+        });
+
+        if (promoCodes.data.length > 0) {
+          sessionConfig.discounts = [{ promotion_code: promoCodes.data[0].id }];
+          console.log('Applied promotion code:', promoCodes.data[0].id);
+        } else {
+          // Try as coupon code instead
+          try {
+            const coupon = await stripe.coupons.retrieve(code.toLowerCase());
+            if (coupon && coupon.valid) {
+              sessionConfig.discounts = [{ coupon: coupon.id }];
+              console.log('Applied coupon:', coupon.id);
+            }
+          } catch (couponError) {
+            console.log('Code not found as coupon either, proceeding without discount');
+            sessionConfig.allow_promotion_codes = true;
+          }
+        }
+      } catch (promoError) {
+        console.log('Error looking up promo code, proceeding without discount:', promoError);
+        sessionConfig.allow_promotion_codes = true;
+      }
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     console.log('Checkout session created:', session.id);
 

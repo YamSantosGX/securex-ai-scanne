@@ -84,7 +84,7 @@ const handleApplyPromo = async () => {
 
   try {
     const { data, error } = await supabase.functions.invoke(
-      'validate-promo',
+      'validate-code',
       {
         body: {
           code: code.trim().toUpperCase(),
