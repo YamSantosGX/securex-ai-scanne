@@ -43,7 +43,7 @@ serve(async (req) => {
       );
     }
 
-    const { priceId, returnUrl } = await req.json();
+    const { priceId, code, returnUrl } = await req.json();
 
     if (!priceId || !returnUrl) {
       return new Response(
@@ -81,7 +81,7 @@ serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeKey, {
-      apiVersion: '2023-10-16',
+      apiVersion: '2025-12-15.clover',
     });
 
     // Create or retrieve Stripe customer for the user
@@ -116,8 +116,12 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
+      discounts: [
+        {
+          coupon: code ? code.toLowerCase() : undefined,
+        }
+      ],
       mode: 'subscription',
-      allow_promotion_codes: true, // Enable promotion codes in checkout
       success_url: `${returnUrl}/dashboard?success=true`,
       cancel_url: `${returnUrl}/pricing?canceled=true`,
     });
