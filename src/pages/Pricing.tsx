@@ -202,7 +202,7 @@ const handleApplyPromo = async () => {
     if (appliedCode.discount.kind === 1) {
       return (price * appliedCode.discount.value) / 100;
     }
-    return appliedCode.discount.value;
+    return Math.min(appliedCode.discount.value, price)
   }
 
   const formatPrice = (price: number) => {
@@ -441,7 +441,7 @@ const handleApplyPromo = async () => {
                               <div>
                                 <p className="text-sm font-medium">Código aplicado!</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {appliedCode.code} • {
+                                  {appliedCode.code.toUpperCase()} • {
                                     appliedCode.discount.kind === 1
                                       ? `${appliedCode.discount.value}% OFF`
                                       : `${formatPrice(appliedCode.discount.value)} OFF`
