@@ -110,7 +110,7 @@ const handleApplyPromo = async () => {
       return
     }
 
-    console.log('Promo code valid:', data.message)
+    console.log('Promo code valid:', data)
 
     setAppliedCode(data)
 
