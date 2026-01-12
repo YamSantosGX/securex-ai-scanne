@@ -110,6 +110,9 @@ serve(async (req) => {
       customer: customerId,
       client_reference_id: user.id,
       payment_method_types: ['card'],
+      metadata: {
+        code: code ? code.toUpperCase() : null,
+      },
       line_items: [
         {
           price: priceId,

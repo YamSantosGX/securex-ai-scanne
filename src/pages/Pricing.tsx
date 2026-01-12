@@ -22,25 +22,25 @@ import {
 export default function Pricing() {
   const [isAnnual, setIsAnnual] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [loading, setLoading] = useState(false);
-
 
   const [code, setCode] = useState('');
   const [appliedCode, setAppliedCode] = useState<any>(null);
   const [checkingCode, setCheckingCode] = useState(false);
-
-
+  
+  const [loading, setLoading] = useState(false);
   const { regionConfig } = useRegion();
   const { t } = useI18n();
   const navigate = useNavigate();
 
+
+  
   const PRICE_IDS = {
     monthly: 'price_1SW0BQ1Ve27RXeTv816at3Mf',
     annual: 'price_1SW0BQ1Ve27RXeTvVaWITrHh',
   };
 
-  /* ---------------- subscription check ---------------- */
-
+    /* ---------------- subscription check ---------------- */
+  
   useEffect(() => {
     checkSubscriptionStatus();
   }, []);
@@ -75,7 +75,7 @@ export default function Pricing() {
     }
   };
 
-  /* ---------------- promo validation ---------------- */
+   /* ---------------- promo validation ---------------- */
 
 const handleApplyPromo = async () => {
   if (!code.trim()) return
@@ -84,26 +84,26 @@ const handleApplyPromo = async () => {
 
   try {
     const { data, error } = await supabase.functions.invoke(
-      'validate-promo',
+      'validate-code',
       {
         body: {
-          code: code.trim().toUpperCase(),
+          code: code.trim(),
         },
       }
     )
 
     if (error || !data?.valid) {
-      const messages: Record<string, string> = {
-        PROMO_REQUIRED: 'Informe um código.',
-        PROMO_INVALID: 'Código inválido.',
-        PROMO_ALREADY_USED: 'Código já utilizado.',
-        PROMO_NOT_DISCOUNT: 'Este código não é um desconto.',
-        INTERNAL_ERROR: 'Erro ao validar o código.',
+      const messages: Record<number, string> = {
+        0: 'Informe um código.',
+        1: 'Código inválido.',
+        2: 'Este código não é um desconto.',
+        3: 'Código já utilizado.',
+        4: 'Erro ao validar o código.',
       }
 
       toast({
         title: 'Código inválido',
-        description: messages[data?.error] ?? 'Não foi possível validar o código.',
+        description: messages[data?.error ?? 4] ?? 'Não foi possível validar o código.',
         variant: 'destructive',
       })
       return
@@ -114,7 +114,7 @@ const handleApplyPromo = async () => {
     toast({
       title: '✨ Código aplicado!',
       description:
-        data.discount.kind === 'percent'
+        data.discount.kind === 1
           ? `${data.discount.value}% de desconto aplicado.`
           : `${formatPrice(data.discount.value)} de desconto aplicado.`,
     })
@@ -156,12 +156,12 @@ const handleApplyPromo = async () => {
         return;
       }
 
-      // Se houver código promocional, resgata antes de processar o pagamento
-
+    // Se houver código promocional, resgata antes de processar o pagamento
       const priceId = isAnnual
         ? PRICE_IDS.annual
         : PRICE_IDS.monthly;
 
+      
       const { data, error } =
         await supabase.functions.invoke(
           'create-checkout',
@@ -176,7 +176,7 @@ const handleApplyPromo = async () => {
 
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
-      
+        
     } catch (error) {
       console.error('Error creating checkout:', error);
       toast({
@@ -189,7 +189,7 @@ const handleApplyPromo = async () => {
     }
   };
 
-  /* ---------------- price helpers ---------------- */
+   /* ---------------- price helpers ---------------- */
 
   const calculatePrice = (base: number) => {
     const price = base * regionConfig.priceMultiplier;
@@ -202,7 +202,7 @@ const handleApplyPromo = async () => {
     if (appliedCode.discount.kind === 1) {
       return (price * appliedCode.discount.value) / 100;
     }
-    return appliedCode.discount.value;
+    return Math.min(appliedCode.discount.value, price)
   }
 
   const formatPrice = (price: number) => {
@@ -357,8 +357,9 @@ const handleApplyPromo = async () => {
                     </span>
                   )}
                 </div>
-                
-                {/* Mostrar desconto aplicado apenas no plano PRO */}
+              </div>
+
+               {/* Mostrar desconto aplicado apenas no plano PRO */}
                 {plan.highlighted && appliedCode && (
                   <div className="mt-3 space-y-2">
                     <div className="flex items-center justify-between text-sm">
@@ -386,7 +387,6 @@ const handleApplyPromo = async () => {
                     </div>
                   </div>
                 )}
-              </div>
 
               {plan.highlighted ? (
                 isSubscribed ? (
@@ -441,7 +441,7 @@ const handleApplyPromo = async () => {
                               <div>
                                 <p className="text-sm font-medium">Código aplicado!</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {appliedCode.code} • {
+                                  {appliedCode.code.toUpperCase()} • {
                                     appliedCode.discount.kind === 1
                                       ? `${appliedCode.discount.value}% OFF`
                                       : `${formatPrice(appliedCode.discount.value)} OFF`
@@ -503,7 +503,6 @@ const handleApplyPromo = async () => {
             {t('pricing.payment_info')}{' '}
             <span className="text-primary font-semibold">Stripe</span>
           </p>
-          
           {/* desativado temporariamente */}
 
           {/* <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-sm">
@@ -519,7 +518,7 @@ const handleApplyPromo = async () => {
             </span>
           </div>*/}
         </motion.div>
-
+        
         {/* FAQ */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

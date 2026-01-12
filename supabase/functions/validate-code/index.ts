@@ -16,7 +16,8 @@ serve(async (req) => {
 
     if (!code) {
       return new Response(
-        JSON.stringify({ valid: false, error: 'PROMO_REQUIRED' }),
+        JSON.stringify({ valid: false, error: 0 }),
+        // 0 - CODE_REQUIRED
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -25,6 +26,7 @@ serve(async (req) => {
     const response = await fetch(
       `${Deno.env.get('API_URL')}/codes?code=${code}`,
       {
+        method: 'GET',
         headers: {
           Authorization: `Bearer ${Deno.env.get('API_TOKEN')}`,
         },
@@ -33,7 +35,8 @@ serve(async (req) => {
 
     if (!response.ok) {
       return new Response(
-        JSON.stringify({ valid: false, error: 'PROMO_INVALID' }),
+        JSON.stringify({ valid: false, error: 1 }),
+        // 1 - CODE_NOT_FOUND
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -42,14 +45,16 @@ serve(async (req) => {
 
     if (promo.type !== 2) {
       return new Response(
-        JSON.stringify({ valid: false, error: 'PROMO_NOT_DISCOUNT' }),
+        JSON.stringify({ valid: false, error: 2 }),
+        // 2 - CODE_NOT_DISCOUNT
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     if (promo.used) {
       return new Response(
-        JSON.stringify({ valid: false, error: 'PROMO_ALREADY_USED' }),
+        JSON.stringify({ valid: false, error: 3 }),
+        // 3 - CODE_ALREADY_USED
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -69,7 +74,8 @@ serve(async (req) => {
     console.error('validate-promo error:', error)
 
     return new Response(
-      JSON.stringify({ valid: false, error: 'INTERNAL_ERROR' }),
+      JSON.stringify({ valid: false, error: 4 }),
+      // 4 - INTERNAL_ERROR
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

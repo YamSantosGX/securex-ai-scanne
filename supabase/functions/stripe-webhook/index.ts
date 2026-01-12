@@ -138,6 +138,32 @@ serve(async (req) => {
       }
 
       console.log("Discord notification sent successfully!");
+
+      if (session.metadata?.code) {
+        const code = session.metadata.code;
+        try {
+          const res = await fetch(
+            `${Deno.env.get("API_URL")}/codes/redeem`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json", 
+                Authorization: `Bearer ${Deno.env.get("API_TOKEN")}`,
+              },
+              body: JSON.stringify({ 
+                code,
+                id: customerEmail
+               }),
+            }
+          );
+          if (!res.ok) {
+            const errorText = await res.text();
+            console.error("Code redemption failed:", errorText);
+          }
+        } catch (error) {
+          console.error("Error redeeming code:", error);
+        }
+      }
     }
 
     return new Response(JSON.stringify({ received: true }), {
