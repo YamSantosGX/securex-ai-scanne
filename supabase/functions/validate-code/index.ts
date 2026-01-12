@@ -37,7 +37,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ valid: false, error: 1 }),
         // 1 - CODE_NOT_FOUND
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -47,7 +47,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ valid: false, error: 2 }),
         // 2 - CODE_NOT_DISCOUNT
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -55,7 +55,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ valid: false, error: 3 }),
         // 3 - CODE_ALREADY_USED
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
