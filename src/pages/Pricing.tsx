@@ -106,6 +106,7 @@ const handleApplyPromo = async () => {
         description: messages[data?.error],
         variant: 'destructive',
       })
+      console.log(JSON.stringify(data) || null)
       return
     }
 
