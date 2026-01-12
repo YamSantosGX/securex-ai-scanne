@@ -18,7 +18,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ valid: false, error: 0 }),
         // 0 - CODE_REQUIRED
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
