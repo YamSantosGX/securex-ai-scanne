@@ -110,6 +110,8 @@ const handleApplyPromo = async () => {
       return
     }
 
+    console.log('Promo code valid:', data.message)
+
     setAppliedCode(data)
 
     toast({

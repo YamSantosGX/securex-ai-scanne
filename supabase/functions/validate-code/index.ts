@@ -67,6 +67,7 @@ serve(async (req) => {
           kind: promo.discount.kind,
           value: promo.discount.value,
         },
+        message: "ok"
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
