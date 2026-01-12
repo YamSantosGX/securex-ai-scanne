@@ -103,7 +103,7 @@ const handleApplyPromo = async () => {
 
       toast({
         title: 'Código inválido',
-        description: messages[data?.error] ?? messages[4],
+        description: messages[data?.error],
         variant: 'destructive',
       })
       return
