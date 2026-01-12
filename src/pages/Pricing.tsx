@@ -106,11 +106,8 @@ const handleApplyPromo = async () => {
         description: messages[data?.error],
         variant: 'destructive',
       })
-      console.log(JSON.stringify(data) || null)
       return
     }
-
-    console.log('Promo code valid:', data)
 
     setAppliedCode(data)
 
