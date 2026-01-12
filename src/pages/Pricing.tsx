@@ -98,12 +98,12 @@ const handleApplyPromo = async () => {
         1: 'Código inválido.',
         2: 'Este código não é um desconto.',
         3: 'Código já utilizado.',
-        4: 'Erro ao validar o código.',
+        4: 'Não foi possível validar o código.',
       }
 
       toast({
         title: 'Código inválido',
-        description: messages[data?.error ?? 4] ?? 'Não foi possível validar o código.',
+        description: messages[data?.error] ?? messages[4],
         variant: 'destructive',
       })
       return
